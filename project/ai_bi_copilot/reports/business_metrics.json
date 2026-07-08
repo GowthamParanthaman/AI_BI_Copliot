@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-08T14:07:26.783241+00:00",
+  "generated_at": "2026-07-08T14:09:17.556929+00:00",
   "dataset": "Retail Sales Analytics",
   "financial_kpis": {
     "total_revenue": 456000.0,
@@ -53,45 +53,45 @@
   },
   "charts": [
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/line_chart_20260708_140717375630_0001.png",
-      "filename": "line_chart_20260708_140717375630_0001.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/line_chart_20260708_140909005545_0001.png",
+      "filename": "line_chart_20260708_140909005545_0001.png"
     },
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/line_chart_20260708_140719694947_0002.png",
-      "filename": "line_chart_20260708_140719694947_0002.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/line_chart_20260708_140910746669_0002.png",
+      "filename": "line_chart_20260708_140910746669_0002.png"
     },
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/line_chart_20260708_140721493999_0003.png",
-      "filename": "line_chart_20260708_140721493999_0003.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/line_chart_20260708_140912354138_0003.png",
+      "filename": "line_chart_20260708_140912354138_0003.png"
     },
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/histogram_20260708_140723205956_0004.png",
-      "filename": "histogram_20260708_140723205956_0004.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/histogram_20260708_140914100249_0004.png",
+      "filename": "histogram_20260708_140914100249_0004.png"
     },
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/histogram_20260708_140723334922_0005.png",
-      "filename": "histogram_20260708_140723334922_0005.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/histogram_20260708_140914219484_0005.png",
+      "filename": "histogram_20260708_140914219484_0005.png"
     },
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/histogram_20260708_140723476682_0006.png",
-      "filename": "histogram_20260708_140723476682_0006.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/histogram_20260708_140914344268_0006.png",
+      "filename": "histogram_20260708_140914344268_0006.png"
     },
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/bar_chart_20260708_140723602785_0007.png",
-      "filename": "bar_chart_20260708_140723602785_0007.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/bar_chart_20260708_140914469259_0007.png",
+      "filename": "bar_chart_20260708_140914469259_0007.png"
     },
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/bar_chart_20260708_140725521458_0008.png",
-      "filename": "bar_chart_20260708_140725521458_0008.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/bar_chart_20260708_140916354688_0008.png",
+      "filename": "bar_chart_20260708_140916354688_0008.png"
     },
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/bar_chart_20260708_140725624454_0009.png",
-      "filename": "bar_chart_20260708_140725624454_0009.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/bar_chart_20260708_140916462827_0009.png",
+      "filename": "bar_chart_20260708_140916462827_0009.png"
     },
     {
-      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/heatmap_20260708_140725751778_0010.png",
-      "filename": "heatmap_20260708_140725751778_0010.png"
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/heatmap_20260708_140916592145_0010.png",
+      "filename": "heatmap_20260708_140916592145_0010.png"
     }
   ],
-  "pdf_report": "/home/runner/workspace/project/ai_bi_copilot/reports/Executive_Report_20260708_140725.pdf"
+  "pdf_report": "/home/runner/workspace/project/ai_bi_copilot/reports/Executive_Report_20260708_140916.pdf"
 }
