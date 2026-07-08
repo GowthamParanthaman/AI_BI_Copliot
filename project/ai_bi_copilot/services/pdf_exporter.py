@@ -26,7 +26,6 @@ class PDFExporter:
     Responsibilities
     ----------------
     - Markdown/HTML text → PDF
-    - Inline chart embedding with captions
     - Automatic file naming
     - Output directory management
     """
@@ -49,7 +48,9 @@ class PDFExporter:
 
     def _generate_filename(self) -> str:
 
-        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime(
+            "%Y%m%d_%H%M%S"
+        )
 
         return f"Executive_Report_{timestamp}.pdf"
 
@@ -62,7 +63,7 @@ class PDFExporter:
         return escape(text)
 
     # =====================================================
-    # EXPORT — legacy: charts appended after content
+    # EXPORT
     # =====================================================
 
     def export(
@@ -70,11 +71,6 @@ class PDFExporter:
         markdown: str,
         chart_paths: list[str] | None = None,
     ) -> str:
-        """
-        Build a PDF from markdown text.
-        Charts are appended at the end as a separate
-        'Business Visualizations' section.
-        """
 
         try:
 
@@ -106,6 +102,8 @@ class PDFExporter:
 
                     if Path(chart).exists():
 
+                        # PageBreak only between charts — never after the
+                        # last one, so no trailing blank page is created.
                         if chart_added:
                             story.append(PageBreak())
 
@@ -134,113 +132,6 @@ class PDFExporter:
         except Exception as exc:
 
             logger.exception("PDF export failed.")
-
-            raise RuntimeError(
-                f"PDF export failed: {exc}"
-            ) from exc
-
-    # =====================================================
-    # EXPORT WITH INLINE CHARTS + CAPTIONS
-    # =====================================================
-
-    def export_with_inline_charts(
-        self,
-        markdown: str,
-        chart_metadata: list[dict] | None = None,
-    ) -> str:
-        """
-        Build a PDF from markdown text with charts embedded
-        *inline* directly after the 'Business Visualizations'
-        heading, each chart followed by its caption.
-
-        Parameters
-        ----------
-        markdown : str
-            Report body in markdown.
-        chart_metadata : list[dict]
-            Each entry: {"title": str, "path": str, "visual_type": str}
-        """
-
-        try:
-
-            filename = self._generate_filename()
-
-            output_path = self.output_directory / filename
-
-            story = self._markdown_to_story(markdown)
-
-            if chart_metadata:
-
-                story.append(PageBreak())
-
-                story.append(
-                    Paragraph(
-                        "Business Visualizations",
-                        ReportTheme.HEADING1,
-                    )
-                )
-
-                story.append(Spacer(1, 12))
-
-                seen_paths: set[str] = set()
-
-                for meta in chart_metadata:
-
-                    path = meta.get("path", "")
-                    title = meta.get("title", "Chart")
-                    visual_type = meta.get("visual_type", "")
-
-                    # Skip non-renderable types and duplicates
-                    if visual_type == "kpi_card":
-                        continue
-
-                    if path in seen_paths:
-                        logger.warning(
-                            f"Skipping duplicate chart path: {path}"
-                        )
-                        continue
-
-                    if not Path(path).exists():
-                        logger.warning(
-                            f"Chart file not found, skipping: {path}"
-                        )
-                        continue
-
-                    seen_paths.add(path)
-
-                    story.append(Spacer(1, 10))
-
-                    story.append(
-                        Image(path, width=450, height=280)
-                    )
-
-                    # Caption below the chart
-                    story.append(Spacer(1, 4))
-
-                    story.append(
-                        Paragraph(
-                            self._escape_paragraph_text(title),
-                            ReportTheme.CAPTION,
-                        )
-                    )
-
-                    story.append(Spacer(1, 18))
-
-            document = SimpleDocTemplate(str(output_path))
-
-            document.build(
-                story,
-                onFirstPage=self._draw_footer,
-                onLaterPages=self._draw_footer,
-            )
-
-            logger.success(f"PDF (inline charts) exported: {output_path}")
-
-            return str(output_path)
-
-        except Exception as exc:
-
-            logger.exception("PDF export with inline charts failed.")
 
             raise RuntimeError(
                 f"PDF export failed: {exc}"
@@ -401,6 +292,8 @@ class PDFExporter:
             line = line.strip()
 
             # ---- TABLE ACCUMULATOR ----
+            # Require line to start with | so normal prose containing
+            # a pipe character is never misidentified as a table row.
             if line.startswith("|"):
                 table_buffer.append(line)
                 continue

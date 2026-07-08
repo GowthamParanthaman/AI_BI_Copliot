@@ -39,16 +39,6 @@ class ReportTheme:
         leading=18,
     )
 
-    CAPTION = ParagraphStyle(
-        "Caption",
-        parent=styles["BodyText"],
-        fontSize=9,
-        leading=12,
-        textColor=colors.HexColor("#444444"),
-        alignment=1,  # centered
-        spaceAfter=6,
-    )
-
     FOOTER = ParagraphStyle(
         "Footer",
         parent=styles["BodyText"],
