@@ -164,7 +164,8 @@ def _find_revenue_col(df: pd.DataFrame) -> str | None:
     keywords = ["total amount", "revenue", "sales", "income", "amount"]
     for col in df.columns:
         if any(k in col.lower() for k in keywords):
-            if pd.api.types.is_numeric_dtype(df[col]):
+            coerced = pd.to_numeric(df[col], errors="coerce")
+            if coerced.notna().sum() > 0:
                 return col
     return None
 
@@ -172,7 +173,8 @@ def _find_revenue_col(df: pd.DataFrame) -> str | None:
 def _find_qty_col(df: pd.DataFrame) -> str | None:
     for col in df.columns:
         if "quantity" in col.lower() or "qty" in col.lower():
-            if pd.api.types.is_numeric_dtype(df[col]):
+            coerced = pd.to_numeric(df[col], errors="coerce")
+            if coerced.notna().sum() > 0:
                 return col
     return None
 
@@ -457,14 +459,16 @@ def run() -> None:
 # -------------------------------------------------------
 
 def _verify_chart_uniqueness(chart_paths: list[str]) -> None:
+    """Verify uniqueness at the filename level (the canonical requirement)."""
+    filenames = [Path(p).name for p in chart_paths]
     seen: set[str] = set()
     duplicates: list[str] = []
-    for p in chart_paths:
-        if p in seen:
-            duplicates.append(p)
-        seen.add(p)
+    for name in filenames:
+        if name in seen:
+            duplicates.append(name)
+        seen.add(name)
     if duplicates:
-        logger.warning(f"Duplicate chart paths: {duplicates}")
+        logger.warning(f"Duplicate chart filenames: {duplicates}")
     else:
         logger.success("All chart filenames are unique")
 
