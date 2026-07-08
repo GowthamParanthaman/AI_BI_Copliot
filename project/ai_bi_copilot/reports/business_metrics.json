@@ -1,0 +1,97 @@
+{
+  "generated_at": "2026-07-08T14:07:26.783241+00:00",
+  "dataset": "Retail Sales Analytics",
+  "financial_kpis": {
+    "total_revenue": 456000.0,
+    "total_profit": 0.0,
+    "profit_margin_pct": 0.0,
+    "revenue_growth_pct": -2.77,
+    "average_order_value": 456.0,
+    "total_orders": 1000
+  },
+  "customer_kpis": {
+    "customer_count": 1000,
+    "customer_satisfaction": 0.0,
+    "customer_churn": 0.0
+  },
+  "product_kpis": {
+    "top_product": "Clothing",
+    "top_category": "Clothing",
+    "total_products": 3
+  },
+  "region_kpis": {
+    "top_region": "Unknown",
+    "total_regions": 0
+  },
+  "business_health": {
+    "status": "CRITICAL",
+    "score": 45.0,
+    "health_service_score": 86.0,
+    "health_service_status": "HEALTHY"
+  },
+  "forecast": {
+    "business_outlook": "STABLE",
+    "growth_rate_pct": 0.92
+  },
+  "executive_decision": {
+    "decision": "OPTIMIZE OPERATIONS",
+    "priority": "MEDIUM",
+    "confidence_pct": 72.65,
+    "expected_roi": "10%",
+    "reason": "Business is stable. Focus on operational efficiency before expansion."
+  },
+  "business_readiness": {
+    "status": "READY",
+    "deployment": "APPROVED",
+    "score": 86.0,
+    "reason": "Business health is excellent and operational risk is low."
+  },
+  "data_quality": {
+    "quality_score": 100.0,
+    "missing_cells": 0,
+    "duplicate_rows": 0
+  },
+  "charts": [
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/line_chart_20260708_140717375630_0001.png",
+      "filename": "line_chart_20260708_140717375630_0001.png"
+    },
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/line_chart_20260708_140719694947_0002.png",
+      "filename": "line_chart_20260708_140719694947_0002.png"
+    },
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/line_chart_20260708_140721493999_0003.png",
+      "filename": "line_chart_20260708_140721493999_0003.png"
+    },
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/histogram_20260708_140723205956_0004.png",
+      "filename": "histogram_20260708_140723205956_0004.png"
+    },
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/histogram_20260708_140723334922_0005.png",
+      "filename": "histogram_20260708_140723334922_0005.png"
+    },
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/histogram_20260708_140723476682_0006.png",
+      "filename": "histogram_20260708_140723476682_0006.png"
+    },
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/bar_chart_20260708_140723602785_0007.png",
+      "filename": "bar_chart_20260708_140723602785_0007.png"
+    },
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/bar_chart_20260708_140725521458_0008.png",
+      "filename": "bar_chart_20260708_140725521458_0008.png"
+    },
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/bar_chart_20260708_140725624454_0009.png",
+      "filename": "bar_chart_20260708_140725624454_0009.png"
+    },
+    {
+      "path": "/home/runner/workspace/project/ai_bi_copilot/reports/charts/heatmap_20260708_140725751778_0010.png",
+      "filename": "heatmap_20260708_140725751778_0010.png"
+    }
+  ],
+  "pdf_report": "/home/runner/workspace/project/ai_bi_copilot/reports/Executive_Report_20260708_140725.pdf"
+}
