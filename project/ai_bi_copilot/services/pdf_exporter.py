@@ -25,7 +25,7 @@ class PDFExporter:
 
     Responsibilities
     ----------------
-    - Markdown/HTML text → PDF
+    - Markdown/HTML text -> PDF
     - Automatic file naming
     - Output directory management
     """
@@ -63,7 +63,7 @@ class PDFExporter:
         return escape(text)
 
     # =====================================================
-    # EXPORT
+    # EXPORT — charts appended as a separate section
     # =====================================================
 
     def export(
@@ -102,8 +102,6 @@ class PDFExporter:
 
                     if Path(chart).exists():
 
-                        # PageBreak only between charts — never after the
-                        # last one, so no trailing blank page is created.
                         if chart_added:
                             story.append(PageBreak())
 
@@ -138,6 +136,106 @@ class PDFExporter:
             ) from exc
 
     # =====================================================
+    # EXPORT — charts inline with captions
+    # =====================================================
+
+    def export_with_inline_charts(
+        self,
+        markdown: str,
+        chart_metadata: list[dict],
+    ) -> str:
+        """
+        Build a PDF where each chart is embedded inline, directly after
+        the report narrative, with a centred caption beneath it.
+
+        ``chart_metadata`` is a list of dicts::
+
+            [{"path": "/abs/path/to/chart.png", "caption": "Figure 1: ..."}, ...]
+
+        Duplicate paths are silently skipped so the same chart is never
+        embedded twice.
+        """
+
+        try:
+
+            filename = self._generate_filename()
+            output_path = self.output_directory / filename
+
+            story = self._markdown_to_story(markdown)
+
+            if chart_metadata:
+
+                story.append(PageBreak())
+
+                story.append(
+                    Paragraph(
+                        "Business Visualizations",
+                        ReportTheme.HEADING1,
+                    )
+                )
+
+                story.append(Spacer(1, 20))
+
+                seen_paths: set[str] = set()
+                chart_added = False
+
+                for meta in chart_metadata:
+
+                    chart_path = meta.get("path", "")
+                    caption = meta.get("caption", "")
+
+                    if not chart_path or not Path(chart_path).exists():
+                        logger.warning(f"Chart not found, skipping: {chart_path}")
+                        continue
+
+                    if chart_path in seen_paths:
+                        logger.warning(f"Duplicate chart path, skipping: {chart_path}")
+                        continue
+
+                    seen_paths.add(chart_path)
+
+                    if chart_added:
+                        story.append(PageBreak())
+
+                    story.append(
+                        Image(
+                            chart_path,
+                            width=450,
+                            height=280,
+                        )
+                    )
+
+                    if caption:
+                        story.append(
+                            Paragraph(
+                                self._escape_paragraph_text(caption),
+                                ReportTheme.CAPTION,
+                            )
+                        )
+
+                    chart_added = True
+
+            document = SimpleDocTemplate(str(output_path))
+
+            document.build(
+                story,
+                onFirstPage=self._draw_footer,
+                onLaterPages=self._draw_footer,
+            )
+
+            logger.success(f"PDF exported (inline charts): {output_path}")
+
+            return str(output_path)
+
+        except Exception as exc:
+
+            logger.exception("PDF export (inline) failed.")
+
+            raise RuntimeError(
+                f"PDF export failed: {exc}"
+            ) from exc
+
+    # =====================================================
     # TABLE PARSER
     # =====================================================
 
@@ -152,7 +250,6 @@ class PDFExporter:
 
             line = line.strip()
 
-            # Skip separator rows  (| --- | --- |)
             separator = (
                 line.replace("|", "")
                     .replace("-", "")
@@ -230,7 +327,7 @@ class PDFExporter:
         return table
 
     # =====================================================
-    # MARKDOWN → STORY
+    # MARKDOWN -> STORY
     # =====================================================
 
     def _markdown_to_story(
@@ -239,10 +336,6 @@ class PDFExporter:
     ) -> list:
 
         story = []
-
-        # --------------------------------------------------
-        # Cover / Header
-        # --------------------------------------------------
 
         story.append(
             Paragraph("AI BI Copilot", ReportTheme.TITLE)
@@ -281,24 +374,16 @@ class PDFExporter:
 
         story.append(Spacer(1, 35))
 
-        # --------------------------------------------------
-        # Body — line-by-line markdown parse
-        # --------------------------------------------------
-
         table_buffer: list[str] = []
 
         for line in markdown.splitlines():
 
             line = line.strip()
 
-            # ---- TABLE ACCUMULATOR ----
-            # Require line to start with | so normal prose containing
-            # a pipe character is never misidentified as a table row.
             if line.startswith("|"):
                 table_buffer.append(line)
                 continue
 
-            # Flush table buffer when a non-table line arrives
             if table_buffer:
                 story.append(
                     self._parse_markdown_table(table_buffer)
@@ -306,7 +391,6 @@ class PDFExporter:
                 story.append(Spacer(1, 6))
                 table_buffer.clear()
 
-            # ---- HEADINGS ----
             if line.startswith("# "):
                 story.append(Spacer(1, 18))
                 story.append(
@@ -325,7 +409,6 @@ class PDFExporter:
                     )
                 )
 
-            # ---- BULLET ----
             elif line.startswith("- "):
                 story.append(
                     Paragraph(
@@ -336,11 +419,9 @@ class PDFExporter:
                 )
                 story.append(Spacer(1, 5))
 
-            # ---- HORIZONTAL RULE ----
             elif line == "---":
                 story.append(Spacer(1, 15))
 
-            # ---- BODY TEXT ----
             elif line:
                 story.append(
                     Paragraph(
@@ -349,7 +430,6 @@ class PDFExporter:
                     )
                 )
 
-        # Flush any trailing table
         if table_buffer:
             story.append(
                 self._parse_markdown_table(table_buffer)

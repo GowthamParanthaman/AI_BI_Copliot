@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from pathlib import Path
 from datetime import UTC, datetime
 
@@ -22,6 +23,10 @@ class VisualizationRenderer:
 
     OUTPUT_DIRECTORY = Path(__file__).resolve().parent.parent / "reports" / "charts"
 
+    # Class-level monotonic counter: guarantees uniqueness even when
+    # multiple charts are generated within the same microsecond.
+    _counter = itertools.count(1)
+
     def __init__(self) -> None:
 
         self.OUTPUT_DIRECTORY.mkdir(
@@ -34,20 +39,12 @@ class VisualizationRenderer:
         chart_name: str,
     ) -> Path:
 
-        timestamp = datetime.now(
-            UTC
-        ).strftime(
-            "%Y%m%d_%H%M%S"
-        )
+        # Microsecond timestamp + monotonic counter = guaranteed unique filename
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S%f")
+        seq = next(self.__class__._counter)
+        filename = f"{chart_name}_{timestamp}_{seq:04d}.png"
 
-        filename = (
-            f"{chart_name}_{timestamp}.png"
-        )
-
-        return (
-            self.OUTPUT_DIRECTORY
-            / filename
-        )
+        return self.OUTPUT_DIRECTORY / filename
 
     def render_bar_chart(
         self,
@@ -101,7 +98,7 @@ class VisualizationRenderer:
 
         output = self._generate_filename("line_chart")
 
-        plt.figure(figsize=(10,6), dpi=300)
+        plt.figure(figsize=(10, 6), dpi=300)
 
         plt.plot(
             dataframe[x_column],
@@ -140,7 +137,7 @@ class VisualizationRenderer:
 
         output = self._generate_filename("histogram")
 
-        plt.figure(figsize=(8,6), dpi=300)
+        plt.figure(figsize=(8, 6), dpi=300)
 
         plt.hist(
             dataframe[column].dropna(),
@@ -182,7 +179,7 @@ class VisualizationRenderer:
             .sum()
         )
 
-        plt.figure(figsize=(8,8), dpi=300)
+        plt.figure(figsize=(8, 8), dpi=300)
 
         plt.pie(
             chart.astype(float).tolist(),
@@ -216,7 +213,7 @@ class VisualizationRenderer:
 
         correlation = dataframe.corr(numeric_only=True)
 
-        plt.figure(figsize=(8,6), dpi=300)
+        plt.figure(figsize=(8, 6), dpi=300)
 
         plt.imshow(
             correlation,

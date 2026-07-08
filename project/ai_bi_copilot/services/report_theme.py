@@ -46,3 +46,13 @@ class ReportTheme:
         textColor=colors.grey,
         alignment=1,
     )
+
+    CAPTION = ParagraphStyle(
+        "Caption",
+        parent=styles["BodyText"],
+        fontSize=9,
+        leading=12,
+        textColor=colors.grey,
+        alignment=1,  # centred
+        spaceAfter=14,
+    )
