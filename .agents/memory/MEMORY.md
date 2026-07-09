@@ -1,0 +1,1 @@
+- [Business Health field mapping](business-health-fields.md) — JS reads business_health_score + status from result.health_score (HealthScoreService), NOT result.kpis.health (KPIService).
