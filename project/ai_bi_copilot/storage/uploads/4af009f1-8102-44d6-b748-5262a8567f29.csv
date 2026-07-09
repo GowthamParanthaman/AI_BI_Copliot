@@ -1,0 +1,11 @@
+order_id,revenue,category,product,region,date
+1,1200.50,Electronics,Laptop,North,2025-01-01
+2,350.00,Clothing,Shirt,South,2025-01-02
+3,89.99,Electronics,Headphones,East,2025-01-03
+4,2500.00,Electronics,TV,North,2025-02-01
+5,450.00,Clothing,Jacket,West,2025-02-02
+6,120.00,Books,Novel,South,2025-02-03
+7,799.00,Electronics,Tablet,East,2025-03-01
+8,60.00,Books,Textbook,North,2025-03-02
+9,3200.00,Electronics,Laptop,West,2025-03-03
+10,250.00,Clothing,Shoes,South,2025-04-01
