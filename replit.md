@@ -1,54 +1,23 @@
 # AI BI Copilot
 
-An enterprise-grade AI-powered Business Intelligence platform built with FastAPI and LangGraph multi-agent workflows.
-
 ## Project Overview
+A FastAPI + LangGraph business intelligence dashboard. Upload CSV datasets, run AI-powered KPI analysis, generate reports, and get insights via chat.
 
-- **Stack:** Python 3.12 · FastAPI · LangGraph · SQLAlchemy · pandas · scikit-learn · ReportLab · Chart.js
-- **Architecture:** Multi-agent pipeline (data ingestion → KPI detection → trend analysis → insight generation → recommendations → report export)
-- **Entry point:** `project/ai_bi_copilot/main.py`
-- **Database:** SQLite (dev) via SQLAlchemy, stored in `project/ai_bi_copilot/database/`
-- **Storage:** Uploaded CSVs in `project/ai_bi_copilot/storage/uploads/`, reports in `project/ai_bi_copilot/reports/`
+**Stack:** Python 3.13 · FastAPI · LangGraph · SQLite · Chart.js · Loguru
 
-## How to Run
+**Entry point:** `project/ai_bi_copilot/main.py`  
+**Run command:** `cd project/ai_bi_copilot && python3 -m uvicorn main:app --host 0.0.0.0 --port 5000 --reload`
 
-```
-cd project/ai_bi_copilot && python3 -m uvicorn main:app --host 0.0.0.0 --port 5000 --reload
-```
+## Key Architecture
+- **Workflow:** 14-node LangGraph pipeline: validation → analysis → kpi → forecast → anomaly → root_cause → health_score → alert → insight → recommendation → action_plan → business_analyst → executive_dashboard → visualization → report
+- **HealthScoreService:** Weighted score (quality 30%, forecast 25%, anomaly 20%, revenue 15%, root_cause 10%). Returns `business_health_score`, `status`, `score_breakdown`.
+- **Database:** SQLite (`ai_bi.db`) — no setup required
+- **Frontend:** Single-page dashboard at `/` — `static/js/app.js` + `templates/dashboard.html`
 
-The workflow **"Start AI BI Copilot"** is already configured and starts automatically.
-
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | Enterprise BI Dashboard (HTML) |
-| GET | `/health` | Health check |
-| GET | `/datasets` | List uploaded datasets |
-| POST | `/upload/dataset` | Upload a CSV dataset |
-| POST | `/analysis/run` | Run full AI analysis pipeline |
-| GET | `/docs` | Swagger UI |
-
-## Dashboard
-
-Full-featured SPA at `/`:
-- Dark sidebar navigation (Dashboard, Upload, Analytics, Forecast, Visualizations, Reports, Settings)
-- KPI cards with sparklines
-- Interactive Chart.js charts (bar, line, doughnut, radar, histogram)
-- Business health score ring
-- AI insights & recommendations panels
-- Sortable/searchable/paginated data table with CSV export
-- Drag-and-drop dataset upload
-- Dark/light theme toggle (persisted)
-
-## Key Notes
-
-- **No OpenAI key configured** — `POST /analysis/run` will fail at the LangGraph LLM step without `OPENAI_API_KEY` set. Set it as a Replit Secret to enable full AI analysis.
-- `dashboard.html` is served as a raw `HTMLResponse` (not via Jinja2Templates) to avoid a Jinja2 3.1.6 LRU cache bug with dict-typed globals in Starlette.
-- Static files served from `project/ai_bi_copilot/static/`; chart images served from `project/ai_bi_copilot/reports/charts/`.
-- Run the standalone pipeline without a server: `cd project/ai_bi_copilot && python3 generate_report.py`
+## Required Secrets
+- `OPENAI_API_KEY` — required for AI agents (insights, recommendations, report, business analysis). Without it the pipeline fails at the ReportAgent (step 14). All non-AI steps (KPI, forecast, anomaly, health score) work without it.
 
 ## User Preferences
-
-- Keep existing project structure — do not restructure or migrate.
-- Backend architecture, API schema, and DB schema are fixed; changes go to frontend/pipeline only unless explicitly requested.
+- Do not modify CSS or HTML — only JavaScript and Python backend changes.
+- Business Health components must use HealthScoreService exclusively (not KPIService.health).
+- Follow CODEX_GUIDE.md rules: no `.get()` on dataclasses, keep type hints, use Loguru.

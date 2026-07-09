@@ -297,15 +297,21 @@ function renderKPICards(result) {
       sparkColor: 'rgba(245,158,11,1)',
     },
     {
-      color:   health.business_health === 'EXCELLENT' ? 'kpi-green' :
-               health.business_health === 'GOOD'      ? 'kpi-cyan'  :
-               health.business_health === 'FAIR'      ? 'kpi-orange': 'kpi-red',
+      // Business Health — sourced exclusively from HealthScoreService
+      color:   (() => {
+        const s = (result.health_score || {}).status || '';
+        return s === 'EXCELLENT' ? 'kpi-green' :
+               s === 'HEALTHY'   ? 'kpi-cyan'  :
+               s === 'STABLE'    ? 'kpi-orange' : 'kpi-red';
+      })(),
       icon:    '🏥',
       label:   'Business Health',
-      value:   fmt.label(health.business_health || '—'),
-      trend:   health.score,
-      sub:     `Score: ${health.score ?? '—'}/100`,
-      sparkData: Array.from({ length: 8 }, (_, i) => (health.score || 50) * (0.84 + i * 0.023)),
+      value:   fmt.label((result.health_score || {}).status || '—'),
+      trend:   (result.health_score || {}).business_health_score ?? null,
+      sub:     `Score: ${(result.health_score || {}).business_health_score ?? '—'}/100`,
+      sparkData: (result.health_score || {}).business_health_score != null
+        ? Array.from({ length: 8 }, (_, i) => result.health_score.business_health_score * (0.84 + i * 0.023))
+        : null,
       sparkColor: 'rgba(6,182,212,1)',
     },
     {
@@ -486,8 +492,22 @@ function renderCharts(result) {
   });
 
   // ── KPI Health Radar ──────────────────────────────────────
-  // Uses result.kpis.health (correct path) — not legacy health_score
-  const score = health.score || 50;
+  // Uses HealthScoreService component scores exclusively — no hardcoded values.
+  // score_breakdown contains weighted contributions; divide by weight to get 0-100 scale.
+  const hs   = result.health_score || {};
+  const hsSB = hs.score_breakdown  || {};
+  const radarData = [
+    // Quality  (weight 0.30): raw quality_score is directly available on the health_score object
+    Math.max(0, Math.min(100, hs.quality_score     != null ? hs.quality_score                    : (hsSB.quality_score    != null ? hsSB.quality_score    / 0.30 : 0))),
+    // Forecast (weight 0.25)
+    Math.max(0, Math.min(100, hsSB.forecast_score  != null ? hsSB.forecast_score  / 0.25 : 0)),
+    // Anomaly  (weight 0.20)
+    Math.max(0, Math.min(100, hsSB.anomaly_score   != null ? hsSB.anomaly_score   / 0.20 : 0)),
+    // Revenue  (weight 0.15)
+    Math.max(0, Math.min(100, hsSB.revenue_score   != null ? hsSB.revenue_score   / 0.15 : 0)),
+    // Root Cause (weight 0.10)
+    Math.max(0, Math.min(100, hsSB.root_cause_score != null ? hsSB.root_cause_score / 0.10 : 0)),
+  ];
   const opts5 = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
@@ -497,6 +517,7 @@ function renderCharts(result) {
         bodyColor: chartDefaults().tickColor,
         titleColor: chartDefaults().tickColor,
         borderColor: '#334155', borderWidth: 1,
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.r.toFixed(1)}/100` },
       },
     },
     scales: {
@@ -513,17 +534,10 @@ function renderCharts(result) {
   makeChart('chart-radar', {
     type: 'radar',
     data: {
-      labels: ['Revenue','Growth','Efficiency','Quality','Satisfaction','Health'],
+      labels: ['Quality', 'Forecast', 'Anomaly', 'Revenue', 'Root Cause'],
       datasets: [{
-        label: 'Current',
-        data: [
-          Math.min(100, rev / Math.max(1, rev) * score),
-          Math.max(0, Math.min(100, 50 + (fin.revenue_growth || 0))),
-          score,
-          fin.profit_margin != null ? Math.min(100, Math.max(0, fin.profit_margin * 2)) : score,
-          cust.customer_satisfaction != null ? Math.min(100, cust.customer_satisfaction) : score,
-          score,
-        ].map(v => Math.max(0, Math.min(100, v))),
+        label: 'Health Components',
+        data: radarData,
         borderColor:          COLORS()[0],
         backgroundColor:      COLORS(0.2)[0],
         pointBackgroundColor: COLORS()[0],
@@ -535,9 +549,10 @@ function renderCharts(result) {
 }
 /* ── Health Ring ─────────────────────────────────────────────── */
 function renderHealthRing(result) {
+  // Use HealthScoreService output: business_health_score + status
   const health = result.health_score || {};
-  const score  = health.score || 0;
-  const label  = health.business_health || '—';
+  const score  = health.business_health_score ?? 0;
+  const label  = health.status || '—';
   const pct    = Math.max(0, Math.min(100, score));
   const color  = pct >= 75 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
 
@@ -1114,19 +1129,20 @@ function buildTableFromResult(result) {
   const health = result.health_score    || {};
 
   // Build a table of real KPI metrics from the API response
+  // All health values come from HealthScoreService (result.health_score)
   const kpiRows = [
-    { 'KPI': 'Total Revenue',       'Value': fin.total_revenue   != null ? '$' + Number(fin.total_revenue).toLocaleString()   : '—', 'Category': 'Financial',    'Status': health.business_health || '—' },
-    { 'KPI': 'Total Orders',        'Value': fin.total_orders    != null ? Number(fin.total_orders).toLocaleString()           : '—', 'Category': 'Financial',    'Status': health.business_health || '—' },
-    { 'KPI': 'Avg Order Value',     'Value': fin.average_order_value != null ? '$' + Number(fin.average_order_value).toFixed(2): '—', 'Category': 'Financial',    'Status': health.business_health || '—' },
-    { 'KPI': 'Revenue Growth',      'Value': fin.revenue_growth  != null ? Number(fin.revenue_growth).toFixed(2) + '%'         : '—', 'Category': 'Growth',       'Status': health.business_health || '—' },
-    { 'KPI': 'Profit Margin',       'Value': fin.profit_margin   != null ? Number(fin.profit_margin).toFixed(2) + '%'          : '—', 'Category': 'Financial',    'Status': health.business_health || '—' },
-    { 'KPI': 'Max Revenue',         'Value': fin.max_revenue     != null ? '$' + Number(fin.max_revenue).toLocaleString()      : '—', 'Category': 'Financial',    'Status': health.business_health || '—' },
-    { 'KPI': 'Min Revenue',         'Value': fin.min_revenue     != null ? '$' + Number(fin.min_revenue).toLocaleString()      : '—', 'Category': 'Financial',    'Status': health.business_health || '—' },
-    { 'KPI': 'Total Quantity',      'Value': fin.total_quantity  != null ? Number(fin.total_quantity).toLocaleString()         : '—', 'Category': 'Operational',  'Status': health.business_health || '—' },
-    { 'KPI': 'Health Score',        'Value': health.score        != null ? String(health.score) + '/100'                       : '—', 'Category': 'Health',       'Status': health.business_health || '—' },
-    { 'KPI': 'Business Health',     'Value': health.business_health || '—',                                                          'Category': 'Health',       'Status': health.business_health || '—' },
-    { 'KPI': 'Top Category',        'Value': cat.top_category    || '—',                                                             'Category': 'Operational',  'Status': health.business_health || '—' },
-    { 'KPI': 'Customer Segments',   'Value': (result.kpis?.customer?.segments_count != null ? result.kpis.customer.segments_count : result.kpis?.segmentation?.segment_count != null ? result.kpis.segmentation.segment_count : '—').toString(), 'Category': 'Customer', 'Status': health.business_health || '—' },
+    { 'KPI': 'Total Revenue',       'Value': fin.total_revenue   != null ? '$' + Number(fin.total_revenue).toLocaleString()    : '—', 'Category': 'Financial',   'Status': health.status || '—' },
+    { 'KPI': 'Total Orders',        'Value': fin.total_orders    != null ? Number(fin.total_orders).toLocaleString()            : '—', 'Category': 'Financial',   'Status': health.status || '—' },
+    { 'KPI': 'Avg Order Value',     'Value': fin.average_order_value != null ? '$' + Number(fin.average_order_value).toFixed(2) : '—', 'Category': 'Financial',   'Status': health.status || '—' },
+    { 'KPI': 'Revenue Growth',      'Value': fin.revenue_growth  != null ? Number(fin.revenue_growth).toFixed(2) + '%'          : '—', 'Category': 'Growth',      'Status': health.status || '—' },
+    { 'KPI': 'Profit Margin',       'Value': fin.profit_margin   != null ? Number(fin.profit_margin).toFixed(2) + '%'           : '—', 'Category': 'Financial',   'Status': health.status || '—' },
+    { 'KPI': 'Max Revenue',         'Value': fin.max_revenue     != null ? '$' + Number(fin.max_revenue).toLocaleString()       : '—', 'Category': 'Financial',   'Status': health.status || '—' },
+    { 'KPI': 'Min Revenue',         'Value': fin.min_revenue     != null ? '$' + Number(fin.min_revenue).toLocaleString()       : '—', 'Category': 'Financial',   'Status': health.status || '—' },
+    { 'KPI': 'Total Quantity',      'Value': fin.total_quantity  != null ? Number(fin.total_quantity).toLocaleString()          : '—', 'Category': 'Operational', 'Status': health.status || '—' },
+    { 'KPI': 'Health Score',        'Value': health.business_health_score != null ? String(health.business_health_score) + '/100' : '—', 'Category': 'Health',   'Status': health.status || '—' },
+    { 'KPI': 'Business Health',     'Value': health.status || '—',                                                                      'Category': 'Health',   'Status': health.status || '—' },
+    { 'KPI': 'Top Category',        'Value': cat.top_category    || '—',                                                                'Category': 'Operational', 'Status': health.status || '—' },
+    { 'KPI': 'Customer Segments',   'Value': (result.kpis?.customer?.segments_count != null ? result.kpis.customer.segments_count : result.kpis?.segmentation?.segment_count != null ? result.kpis.segmentation.segment_count : '—').toString(), 'Category': 'Customer', 'Status': health.status || '—' },
   ].filter(r => r.Value !== '—');
   const mockData = kpiRows.length ? kpiRows : [{ 'KPI': 'No KPI data returned', 'Value': '—', 'Category': '—', 'Status': '—' }];
 
