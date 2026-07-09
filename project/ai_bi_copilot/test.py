@@ -445,7 +445,8 @@ result = KPIResult(
     product=ProductKPIs(
         top_product="Laptop",
         top_category="Electronics",
-        total_products=150
+        total_products=150,
+        category_distribution=[]
     ),
 
     region=RegionKPIs(

@@ -37,6 +37,14 @@ class CustomerKPIs:
 # =====================================================
 
 @dataclass(slots=True)
+class CategoryDistributionItem:
+
+    label: str
+
+    percentage: float
+
+
+@dataclass(slots=True)
 class ProductKPIs:
 
     top_product: str
@@ -44,6 +52,8 @@ class ProductKPIs:
     top_category: str
 
     total_products: int
+
+    category_distribution: list[CategoryDistributionItem]
 
 
 # =====================================================

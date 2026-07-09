@@ -424,14 +424,12 @@ function renderCharts(result) {
   });
 
   // ── Category Distribution (doughnut) ─────────────────────
-  // Real percentage breakdown computed from the uploaded dataset
+  // Real percentage breakdown computed from the uploaded dataset via
+  // KPIService — no hardcoded fallback values. When the dataset has no
+  // category column, the chart renders empty rather than showing fake data.
   const catDist   = charts.category_distribution || {};
-  const catNames  = catDist.labels?.length
-    ? catDist.labels
-    : ['Electronics', 'Clothing', 'Beauty', 'Other', 'Sports'];
-  const catValues = catDist.values?.length
-    ? catDist.values
-    : [35, 28, 18, 12, 7];
+  const catNames  = catDist.labels?.length ? catDist.labels : [];
+  const catValues = catDist.values?.length ? catDist.values : [];
   const opts3 = {
     responsive: true, maintainAspectRatio: false,
     plugins: {

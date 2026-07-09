@@ -1,6 +1,7 @@
-modules = ["python-3.12", "web", "nix"]
+modules = ["web", "nix", "python-base-3.13"]
 [nix]
 channel = "stable-25_05"
+packages = ["cairo", "cargo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "qhull", "rustc", "tcl", "tk", "zlib"]
 
 [agent]
 expertMode = true

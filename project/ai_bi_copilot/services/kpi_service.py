@@ -7,6 +7,7 @@ import pandas as pd
 from loguru import logger
 
 from schemas.kpi_schema import (
+    CategoryDistributionItem,
     CustomerKPIs,
     FinancialKPIs,
     KPIHealth,
@@ -138,7 +139,8 @@ class KPIService:
         )
 
         product = self._product_kpis(
-            df
+            df,
+            revenue_column=revenue_column,
         )
 
         region = self._region_kpis(
@@ -387,9 +389,36 @@ class KPIService:
     # PRODUCT KPIS
     # ==================================================
 
+    def get_category_distribution(
+        self,
+        df: pd.DataFrame,
+    ) -> list[CategoryDistributionItem]:
+        """
+        Public entry point for category chart data: the real category share
+        of the uploaded dataset, weighted by revenue when available. This is
+        the single source of truth for category visualizations.
+        """
+
+        revenue_column = self._find_column(
+            df,
+            self.BUSINESS_TERMS["revenue"],
+        )
+
+        category_column = self._find_column(
+            df,
+            self.BUSINESS_TERMS["category"],
+        )
+
+        return self._category_distribution(
+            df=df,
+            category_column=category_column,
+            revenue_column=revenue_column,
+        )
+
     def _product_kpis(
         self,
         df: pd.DataFrame,
+        revenue_column: str | None,
     ) -> ProductKPIs:
 
         product_column = self._find_column(
@@ -420,18 +449,108 @@ class KPIService:
             else 0
         )
 
+        category_distribution = self._category_distribution(
+            df=df,
+            category_column=category_column,
+            revenue_column=revenue_column,
+        )
+
         logger.info(
             "Product KPIs calculated | "
             f"top_product={top_product} | "
             f"top_category={top_category} | "
-            f"total_products={total_products}"
+            f"total_products={total_products} | "
+            f"category_distribution={len(category_distribution)} entries"
         )
 
         return ProductKPIs(
             top_product=top_product,
             top_category=top_category,
             total_products=total_products,
+            category_distribution=category_distribution,
         )
+
+    # ==================================================
+    # CATEGORY DISTRIBUTION
+    # ==================================================
+
+    @staticmethod
+    def _category_distribution(
+        df: pd.DataFrame,
+        category_column: str | None,
+        revenue_column: str | None,
+        top_n: int = 5,
+    ) -> list[CategoryDistributionItem]:
+        """
+        Real category share of the dataset, expressed as a percentage.
+
+        Weighted by revenue when a revenue column is available, otherwise by
+        row count. Returns the top ``top_n`` categories plus an "Other"
+        bucket for the remainder. No hardcoded seed values — every
+        percentage is derived from the uploaded DataFrame.
+        """
+
+        if not category_column:
+            return []
+
+        if revenue_column:
+            weights = pd.to_numeric(
+                df[revenue_column],
+                errors="coerce",
+            ).fillna(0)
+
+            totals = (
+                pd.DataFrame(
+                    {
+                        "category": df[category_column].astype(str),
+                        "weight": weights,
+                    }
+                )
+                .groupby("category")["weight"]
+                .sum()
+                .sort_values(ascending=False)
+            )
+
+        else:
+            totals = (
+                df[category_column]
+                .astype(str)
+                .value_counts()
+                .astype(float)
+            )
+
+        grand_total = float(totals.sum())
+
+        if grand_total <= 0:
+            return []
+
+        top_categories = totals.head(top_n)
+
+        distribution = [
+            CategoryDistributionItem(
+                label=str(label),
+                percentage=round(
+                    float(value) / grand_total * 100,
+                    1,
+                ),
+            )
+            for label, value in top_categories.items()
+        ]
+
+        remainder = grand_total - float(top_categories.sum())
+
+        if remainder > 0:
+            distribution.append(
+                CategoryDistributionItem(
+                    label="Other",
+                    percentage=round(
+                        remainder / grand_total * 100,
+                        1,
+                    ),
+                )
+            )
+
+        return distribution
 
     # ==================================================
     # REGION KPIS

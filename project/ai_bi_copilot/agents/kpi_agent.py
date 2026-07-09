@@ -16,6 +16,7 @@ from schemas.kpi_schema import (
 )
 
 from agents.base_agent import BaseAgent
+from services.kpi_service import KPIService
 from workflows.state import BIWorkflowState
 
 class KPIAgent(BaseAgent):
@@ -35,6 +36,8 @@ class KPIAgent(BaseAgent):
 
     agent_name = "KPIAgent"
     agent_version = "2.0.0"
+
+    _kpi_service = KPIService()
 
     KPI_PATTERNS = {
 
@@ -180,6 +183,11 @@ class KPIAgent(BaseAgent):
             total_products=product.get(
                 "total_products",
                 0
+            ),
+
+            category_distribution=category.get(
+                "category_distribution",
+                []
             ),
         )
 
@@ -751,6 +759,12 @@ class KPIAgent(BaseAgent):
                 .idxmax()
             )
 
+        # Category chart data is the single source of truth from KPIService
+        # (dataclass-based, no hardcoded percentages).
+        result["category_distribution"] = (
+            self._kpi_service.get_category_distribution(df)
+        )
+
         return result
     def _region_kpis(
         self,
@@ -818,9 +832,31 @@ class KPIAgent(BaseAgent):
         return {
             "revenue_by_period":        self._revenue_by_period(df, revenue_column, date_column, category_column),
             "revenue_trend":            self._revenue_trend(df, revenue_column, date_column),
-            "category_distribution":    self._category_distribution(df, revenue_column, category_column),
+            "category_distribution":    self._category_distribution_from_kpi_service(df, revenue_column, category_column),
             "order_value_distribution": self._order_value_distribution(df, revenue_column),
         }
+
+    def _category_distribution_from_kpi_service(self, df, revenue_column, category_column):
+        """
+        Category chart data sourced exclusively from KPIService.ProductKPIs
+        (dataclass, single source of truth) — no legacy dict computation
+        and no hardcoded percentages.
+        """
+
+        if category_column is None:
+            return {}
+
+        distribution = self._kpi_service.get_category_distribution(df)
+
+        if not distribution:
+            return {}
+
+        labels = [item.label for item in distribution]
+        values = [item.percentage for item in distribution]
+
+        logger.info(f"Category distribution (KPIService): {dict(zip(labels, values))}")
+
+        return {"labels": labels, "values": values}
 
     @staticmethod
     def _detect_column(df, keywords):
@@ -910,45 +946,6 @@ class KPIAgent(BaseAgent):
             "values": [round(v, 2) for v in slices],
             "type":   "period",
         }
-
-    def _category_distribution(self, df, revenue_column, category_column):
-        """Real category share as % of total revenue. Returns top-5 + Other."""
-        import pandas as pd
-
-        if category_column is None:
-            return {}
-
-        try:
-            if revenue_column:
-                rev    = pd.to_numeric(df[revenue_column], errors="coerce").fillna(0)
-                totals = (
-                    pd.DataFrame({"rev": rev, "cat": df[category_column].astype(str)})
-                    .groupby("cat")["rev"]
-                    .sum()
-                    .sort_values(ascending=False)
-                )
-            else:
-                totals = df[category_column].astype(str).value_counts().astype(float)
-
-            grand = float(totals.sum())
-            if grand == 0:
-                return {}
-
-            top5   = totals.head(5)
-            other  = grand - float(top5.sum())
-            labels = list(top5.index)
-            values = [round(float(v) / grand * 100, 1) for v in top5.values]
-
-            if other > 0:
-                labels.append("Other")
-                values.append(round(other / grand * 100, 1))
-
-            logger.info(f"Category distribution: {dict(zip(labels, values))}")
-            return {"labels": labels, "values": values}
-
-        except Exception as exc:
-            logger.warning(f"Category distribution failed: {exc}")
-            return {}
 
     def _order_value_distribution(self, df, revenue_column):
         """Real histogram of per-row order values using fixed $100-wide bins."""
