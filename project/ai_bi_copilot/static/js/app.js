@@ -251,8 +251,9 @@ function renderKPICards(result) {
   if (!el) return;
 
   const fin    = result.kpis?.financial || {};
-  const health = result.health_score   || {};
-  const cat    = result.kpis?.category || {};
+  const cust   = result.kpis?.customer  || {};
+  const health = result.kpis?.health    || {};
+  const cat    = result.kpis?.product   || {};
 
   const cards = [
     {
@@ -269,20 +270,20 @@ function renderKPICards(result) {
       color:   'kpi-green',
       icon:    '🛒',
       label:   'Total Orders',
-      value:   fmt.number(fin.total_orders),
+      value:   fmt.number(cust.customer_count),
       trend:   fin.revenue_growth,
       sub:     'All time',
-      sparkData: Array.from({ length: 8 }, (_, i) => (fin.total_orders || 0) * (0.78 + i * 0.031)),
+      sparkData: Array.from({ length: 8 }, (_, i) => (cust.customer_count || 0) * (0.78 + i * 0.031)),
       sparkColor: 'rgba(16,185,129,1)',
     },
     {
       color:   'kpi-purple',
       icon:    '📦',
       label:   'Avg Order Value',
-      value:   fmt.currency(fin.average_order_value),
+      value:   fmt.currency(cust.average_order_value),
       trend:   null,
       sub:     'Per transaction',
-      sparkData: Array.from({ length: 8 }, (_, i) => (fin.average_order_value || 0) * (0.88 + i * 0.017)),
+      sparkData: Array.from({ length: 8 }, (_, i) => (cust.average_order_value || 0) * (0.88 + i * 0.017)),
       sparkColor: 'rgba(139,92,246,1)',
     },
     {
