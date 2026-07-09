@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, List
 
 from loguru import logger
 
@@ -12,6 +12,10 @@ from fastapi import status
 
 from services.dataset_service import (
     DatasetService
+)
+
+from services.file_storage_service import (
+    FileStorageService
 )
 
 from api.dependencies.services import (
@@ -28,6 +32,8 @@ router = APIRouter(
     prefix="/datasets",
     tags=["Datasets"]
 )
+
+_file_storage = FileStorageService()
 
 
 # =====================================================
@@ -205,6 +211,87 @@ def get_dataset_summary(
 
     return service.get_dataset_summary()
 
+
+
+
+# =====================================================
+# GET DATASET ROWS
+# =====================================================
+
+@router.get(
+    "/{dataset_name}/rows",
+    summary="Get Dataset Rows",
+    description="Return the actual rows of an uploaded dataset as JSON records."
+)
+def get_dataset_rows(
+    dataset_name: str,
+    limit: int = Query(
+        default=5000,
+        ge=1,
+        le=50000,
+        description="Maximum rows to return"
+    ),
+    service: DatasetService = Depends(
+        get_dataset_service
+    )
+) -> dict[str, Any]:
+
+    dataset = service.get_dataset_by_name(dataset_name)
+
+    if dataset is None:
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Dataset not found: {dataset_name}"
+        )
+
+    if not dataset.file_path:
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dataset file path missing"
+        )
+
+    try:
+
+        df = _file_storage.load_dataframe(dataset.file_path)
+        total_rows = len(df)
+        df = df.head(limit)
+
+        # Replace NaN/NaT with None for clean JSON
+        rows: list[dict[str, Any]] = (
+            df.where(df.notna(), other=None)
+            .to_dict(orient="records")
+        )
+
+        logger.info(
+            f"Returning {len(rows)}/{total_rows} rows "
+            f"for dataset={dataset_name}"
+        )
+
+        return {
+            "dataset_name": dataset_name,
+            "total_rows":   total_rows,
+            "returned_rows": len(rows),
+            "columns":      list(df.columns),
+            "rows":         rows,
+        }
+
+    except FileNotFoundError:
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dataset file not found on disk"
+        )
+
+    except Exception as exc:
+
+        logger.exception(exc)
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to load dataset rows"
+        )
 
 # =====================================================
 # SOFT DELETE

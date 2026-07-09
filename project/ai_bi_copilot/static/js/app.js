@@ -1013,7 +1013,7 @@ async function runAnalysis() {
     renderInsights(result);
     renderHealthRing(result);
     renderForecast(result);
-    buildTableFromResult(result);
+    await buildTableFromResult(result);
 
     // Show analysis info bar
     document.getElementById('analysis-info-bar').style.display = 'flex';
@@ -1122,31 +1122,28 @@ function renderChartsSection(result) {
   requestAnimationFrame(() => renderCharts(result));
 }
 
-function buildTableFromResult(result) {
-  // Build representative sample rows from KPI data
-  const fin    = result.kpis?.financial || {};
-  const cat    = result.kpis?.category  || {};
-  const health = result.health_score    || {};
+async function buildTableFromResult(result) {
+  // Fetch the actual uploaded dataset rows from the backend.
+  // Search, sorting, and pagination are handled entirely client-side by
+  // initTable / renderTable / searchTable / sortTable / goPage.
+  const datasetName = result.dataset_name || State.selectedDataset;
+  let rows;
+  try {
+    const response = await API.get(
+      '/datasets/' + encodeURIComponent(datasetName) + '/rows'
+    );
+    rows = response.rows || [];
+  } catch (err) {
+    rows = [];
+    Toast.show('Could not load dataset rows: ' + err.message, 'warning');
+  }
 
-  // Build a table of real KPI metrics from the API response
-  // All health values come from HealthScoreService (result.health_score)
-  const kpiRows = [
-    { 'KPI': 'Total Revenue',       'Value': fin.total_revenue   != null ? '$' + Number(fin.total_revenue).toLocaleString()    : '—', 'Category': 'Financial',   'Status': health.status || '—' },
-    { 'KPI': 'Total Orders',        'Value': fin.total_orders    != null ? Number(fin.total_orders).toLocaleString()            : '—', 'Category': 'Financial',   'Status': health.status || '—' },
-    { 'KPI': 'Avg Order Value',     'Value': fin.average_order_value != null ? '$' + Number(fin.average_order_value).toFixed(2) : '—', 'Category': 'Financial',   'Status': health.status || '—' },
-    { 'KPI': 'Revenue Growth',      'Value': fin.revenue_growth  != null ? Number(fin.revenue_growth).toFixed(2) + '%'          : '—', 'Category': 'Growth',      'Status': health.status || '—' },
-    { 'KPI': 'Profit Margin',       'Value': fin.profit_margin   != null ? Number(fin.profit_margin).toFixed(2) + '%'           : '—', 'Category': 'Financial',   'Status': health.status || '—' },
-    { 'KPI': 'Max Revenue',         'Value': fin.max_revenue     != null ? '$' + Number(fin.max_revenue).toLocaleString()       : '—', 'Category': 'Financial',   'Status': health.status || '—' },
-    { 'KPI': 'Min Revenue',         'Value': fin.min_revenue     != null ? '$' + Number(fin.min_revenue).toLocaleString()       : '—', 'Category': 'Financial',   'Status': health.status || '—' },
-    { 'KPI': 'Total Quantity',      'Value': fin.total_quantity  != null ? Number(fin.total_quantity).toLocaleString()          : '—', 'Category': 'Operational', 'Status': health.status || '—' },
-    { 'KPI': 'Health Score',        'Value': health.business_health_score != null ? String(health.business_health_score) + '/100' : '—', 'Category': 'Health',   'Status': health.status || '—' },
-    { 'KPI': 'Business Health',     'Value': health.status || '—',                                                                      'Category': 'Health',   'Status': health.status || '—' },
-    { 'KPI': 'Top Category',        'Value': cat.top_category    || '—',                                                                'Category': 'Operational', 'Status': health.status || '—' },
-    { 'KPI': 'Customer Segments',   'Value': (result.kpis?.customer?.segments_count != null ? result.kpis.customer.segments_count : result.kpis?.segmentation?.segment_count != null ? result.kpis.segmentation.segment_count : '—').toString(), 'Category': 'Customer', 'Status': health.status || '—' },
-  ].filter(r => r.Value !== '—');
-  const mockData = kpiRows.length ? kpiRows : [{ 'KPI': 'No KPI data returned', 'Value': '—', 'Category': '—', 'Status': '—' }];
+  if (rows.length === 0) {
+    // Show an informative empty state instead of blank table
+    rows = [{ 'Info': 'No rows returned for dataset: ' + datasetName }];
+  }
 
-  initTable(mockData);
+  initTable(rows);
   renderTableSection();
 }
 
