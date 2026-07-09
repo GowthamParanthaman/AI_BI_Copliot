@@ -350,15 +350,16 @@
         <div class="page-header">
           <div>
             <h1 class="page-title">Forecast</h1>
-            <p class="page-subtitle">Predictive business analytics</p>
+            <p class="page-subtitle">Predictive business analytics · powered by ForecastService</p>
           </div>
         </div>
-        <div class="empty-state">
+        <div id="forecast-empty-state" class="empty-state">
           <div class="empty-state-icon">🔮</div>
           <div class="empty-state-title">Forecast coming soon</div>
           <div class="empty-state-text">Time-series forecasting will appear here after running a full pipeline analysis.</div>
           <button class="btn btn-primary" onclick="activateView('dashboard')">Run Analysis</button>
         </div>
+        <div id="forecast-content" style="display:none"></div>
       </div>
 
       <!-- ════ View: Visualizations ═════════════════════════════ -->

@@ -554,6 +554,96 @@ function renderHealthRing(result) {
   }
 }
 
+/* ── Forecast (ForecastService predictions only — no synthetic values) ── */
+function renderForecast(result) {
+  const emptyState = document.getElementById('forecast-empty-state');
+  const content     = document.getElementById('forecast-content');
+  if (!emptyState || !content) return;
+
+  const forecast = result.forecast_results || {};
+
+  if (!forecast.forecast_available) {
+    // No fabricated forecast — surface the real reason from ForecastService.
+    const reasons = {
+      NO_REVENUE_COLUMN:            'No revenue column was found in this dataset.',
+      NO_DATE_COLUMN:               'No date column was found in this dataset.',
+      INSUFFICIENT_TIME_SERIES_DATA:'Not enough historical time-series data to forecast (at least 10 dated periods required).',
+    };
+    const reason = reasons[forecast.status] || forecast.message ||
+      'Forecast will appear here after running a full pipeline analysis on a dataset with revenue and date columns.';
+
+    content.style.display     = 'none';
+    emptyState.style.display  = 'block';
+    emptyState.querySelector('.empty-state-title').textContent = forecast.status ? 'Forecast unavailable' : 'Forecast coming soon';
+    emptyState.querySelector('.empty-state-text').textContent  = reason;
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  content.style.display    = 'block';
+
+  const outlookColor = {
+    POSITIVE: '#10b981',
+    STABLE:   '#f59e0b',
+    NEGATIVE: '#ef4444',
+  }[forecast.business_outlook] || '#6b7280';
+
+  const horizons = [
+    { label: '30-Day Forecast', value: forecast.next_30_days },
+    { label: '60-Day Forecast', value: forecast.next_60_days },
+    { label: '90-Day Forecast', value: forecast.next_90_days },
+  ];
+
+  content.innerHTML = `
+    <div class="kpi-grid" style="margin-bottom:20px;">
+      ${horizons.map((h, i) => `
+        <article class="kpi-card kpi-indigo" role="region" aria-label="${h.label}">
+          <div class="kpi-card-header">
+            <div class="kpi-icon" aria-hidden="true">🔮</div>
+          </div>
+          <div>
+            <div class="kpi-label">${h.label}</div>
+            <div class="kpi-value" aria-live="polite">${fmt.currency(h.value)}</div>
+            <div class="kpi-sub">Projected revenue</div>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+    <div class="chart-card" style="padding:20px;">
+      <div class="chart-card-title" style="margin-bottom:14px;">Forecast Details</div>
+      <div class="forecast-details-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
+        <div>
+          <div style="color:var(--text-muted);font-size:12px;">Current Average (per period)</div>
+          <div style="font-size:16px;font-weight:600;">${fmt.currency(forecast.current_average)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-muted);font-size:12px;">Growth Rate</div>
+          <div style="font-size:16px;font-weight:600;" class="${trendClass(forecast.growth_rate)}">${fmt.pct(forecast.growth_rate)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-muted);font-size:12px;">Business Outlook</div>
+          <div style="font-size:16px;font-weight:600;color:${outlookColor};">${fmt.label(forecast.business_outlook)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-muted);font-size:12px;">Confidence</div>
+          <div style="font-size:16px;font-weight:600;">${fmt.label(forecast.confidence)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-muted);font-size:12px;">Revenue Column</div>
+          <div style="font-size:16px;font-weight:600;">${fmt.label(forecast.revenue_column)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-muted);font-size:12px;">Date Column</div>
+          <div style="font-size:16px;font-weight:600;">${fmt.label(forecast.date_column)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-muted);font-size:12px;">Historical Periods Used</div>
+          <div style="font-size:16px;font-weight:600;">${fmt.number(forecast.historical_periods)}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
 /* ── Insights ────────────────────────────────────────────────── */
 function renderInsights(result) {
   const insightsList = document.getElementById('insights-list');
@@ -907,6 +997,7 @@ async function runAnalysis() {
     renderChartsSection(result);
     renderInsights(result);
     renderHealthRing(result);
+    renderForecast(result);
     buildTableFromResult(result);
 
     // Show analysis info bar
