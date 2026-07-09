@@ -361,14 +361,19 @@ function renderKPICards(result) {
 
 /* ── Charts ──────────────────────────────────────────────────── */
 function renderCharts(result) {
-  const fin  = result.kpis?.financial || {};
-  const cat  = result.kpis?.category  || {};
-  const ops  = result.kpis?.operational || {};
+  const fin    = result.kpis?.financial || {};
+  const cust   = result.kpis?.customer  || {};
+  const health = result.kpis?.health    || {};
+  const charts = result.kpis?.charts    || {};
 
   // ── Revenue Overview (bar) ────────────────────────────────
-  const revenueLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
-  const rev = fin.total_revenue || 0;
-  const revenueData   = [rev*0.21, rev*0.24, rev*0.28, rev*0.27];
+  // Real quarterly/category/period data from the backend
+  const revByPeriod   = charts.revenue_by_period || {};
+  const revenueLabels = revByPeriod.labels?.length ? revByPeriod.labels : ['Q1','Q2','Q3','Q4'];
+  const rev           = fin.total_revenue || 0;
+  const revenueData   = revByPeriod.values?.length
+    ? revByPeriod.values
+    : [rev * 0.21, rev * 0.24, rev * 0.28, rev * 0.27];
   const opts1 = baseChartOptions();
   opts1.plugins.tooltip.callbacks.label = ctx =>
     ' Revenue: $' + ctx.parsed.y.toLocaleString();
@@ -388,36 +393,45 @@ function renderCharts(result) {
   });
 
   // ── Revenue Trend (line) ──────────────────────────────────
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const growthRate = (fin.revenue_growth || 0) / 100;
-  const trend  = months.map((_, i) => rev/12 * (0.85 + i * 0.025 + growthRate * 0.1 * (i - 5)));
-  const opts2  = baseChartOptions();
+  // Real monthly/period revenue series from the backend
+  const revTrend    = charts.revenue_trend || {};
+  const trendLabels = revTrend.labels?.length
+    ? revTrend.labels
+    : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const trendData   = revTrend.values?.length
+    ? revTrend.values
+    : trendLabels.map((_, i) => rev / trendLabels.length * (0.85 + i * 0.025));
+  const opts2 = baseChartOptions();
   opts2.elements = { point: { radius: 3 }, line: { tension: 0.4 } };
   opts2.plugins.tooltip.callbacks.label = ctx =>
     ' $' + ctx.parsed.y.toLocaleString();
   makeChart('chart-trend', {
     type: 'line',
     data: {
-      labels:   months,
+      labels:   trendLabels,
       datasets: [{
         label:           'Monthly Revenue',
-        data:            trend,
+        data:            trendData,
         borderColor:     COLORS()[0],
         backgroundColor: COLORS(0.12)[0],
         fill:            true,
         tension:         0.4,
         pointRadius:     3,
-        pointHoverRadius:6,
+        pointHoverRadius: 6,
       }],
     },
     options: opts2,
   });
 
   // ── Category Distribution (doughnut) ─────────────────────
-  const catNames = result.kpis?.category?.top_category
-    ? [result.kpis.category.top_category, 'Electronics', 'Clothing', 'Beauty', 'Other']
+  // Real percentage breakdown computed from the uploaded dataset
+  const catDist   = charts.category_distribution || {};
+  const catNames  = catDist.labels?.length
+    ? catDist.labels
     : ['Electronics', 'Clothing', 'Beauty', 'Other', 'Sports'];
-  const catValues = [35, 28, 18, 12, 7];
+  const catValues = catDist.values?.length
+    ? catDist.values
+    : [35, 28, 18, 12, 7];
   const opts3 = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
@@ -445,12 +459,15 @@ function renderCharts(result) {
     options: opts3,
   });
 
-  // ── Order Value Distribution (histogram approximation) ────
-  const aov   = fin.average_order_value || 456;
-  const bins  = ['0-100','100-200','200-300','300-400','400-500','500-600','600-700','700+'];
-  // Deterministic distribution shaped around the average order value
-  const aovRatio = Math.max(0.3, Math.min(2.0, (fin.average_order_value || 456) / 400));
-  const binsV = [8,15,22,31,42,34,20,12].map((v, i) => Math.round(v * (i < 4 ? 1/aovRatio : aovRatio)));
+  // ── Order Value Distribution (histogram) ─────────────────
+  // Real order-value histogram bins from the uploaded dataset
+  const ovDist = charts.order_value_distribution || {};
+  const bins   = ovDist.labels?.length
+    ? ovDist.labels
+    : ['0-100','100-200','200-300','300-400','400-500','500-600','600-700','700+'];
+  const binsV  = ovDist.values?.length
+    ? ovDist.values
+    : bins.map(() => 0);
   const opts4 = baseChartOptions();
   opts4.plugins.legend.display = false;
   opts4.plugins.tooltip.callbacks.label = ctx => ` Count: ${ctx.parsed.y}`;
@@ -471,9 +488,9 @@ function renderCharts(result) {
   });
 
   // ── KPI Health Radar ──────────────────────────────────────
-  const health = result.health_score || {};
-  const score  = health.score || 50;
-  const opts5  = {
+  // Uses result.kpis.health (correct path) — not legacy health_score
+  const score = health.score || 50;
+  const opts5 = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
       legend: { labels: { color: chartDefaults().legendColor } },
@@ -502,15 +519,15 @@ function renderCharts(result) {
       datasets: [{
         label: 'Current',
         data: [
-          Math.min(100, (fin.total_revenue||0)/5000),
-          50 + (fin.revenue_growth||0),
+          Math.min(100, rev / Math.max(1, rev) * score),
+          Math.max(0, Math.min(100, 50 + (fin.revenue_growth || 0))),
           score,
-          85,
-          70,
+          fin.profit_margin != null ? Math.min(100, Math.max(0, fin.profit_margin * 2)) : score,
+          cust.customer_satisfaction != null ? Math.min(100, cust.customer_satisfaction) : score,
           score,
         ].map(v => Math.max(0, Math.min(100, v))),
-        borderColor:     COLORS()[0],
-        backgroundColor: COLORS(0.2)[0],
+        borderColor:          COLORS()[0],
+        backgroundColor:      COLORS(0.2)[0],
         pointBackgroundColor: COLORS()[0],
         pointRadius: 4,
       }],
@@ -518,7 +535,6 @@ function renderCharts(result) {
     options: opts5,
   });
 }
-
 /* ── Health Ring ─────────────────────────────────────────────── */
 function renderHealthRing(result) {
   const health = result.health_score || {};

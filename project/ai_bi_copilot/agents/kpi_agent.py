@@ -276,6 +276,9 @@ class KPIAgent(BaseAgent):
         # Legacy dictionary (temporary compatibility)
         state["kpis"] = asdict(kpi_result)
 
+        # Chart-ready arrays derived from the real DataFrame
+        state["kpis"]["charts"] = self._compute_chart_data(df)
+
         state["kpi_status"] = "COMPLETED"
 
         state["kpi_generated_at"] = datetime.now(
@@ -783,5 +786,200 @@ class KPIAgent(BaseAgent):
             )
 
         return result
-    
-    
+
+    # ==================================================
+    # CHART DATA — real arrays from the DataFrame
+    # ==================================================
+
+    def _compute_chart_data(
+        self,
+        df,
+    ):
+        """
+        Derive chart-ready arrays from actual DataFrame rows.
+        No hardcoded seeds — every value comes from real data.
+        """
+
+        revenue_column = self._detect_column(
+            df,
+            ["revenue", "sales", "amount", "total_amount", "gross_sales", "net_sales", "income"],
+        )
+
+        date_column = self._detect_column(
+            df,
+            ["date", "order_date", "transaction_date", "created_at", "timestamp", "purchase_date"],
+        )
+
+        category_column = self._detect_column(
+            df,
+            ["category", "segment", "department"],
+        )
+
+        return {
+            "revenue_by_period":        self._revenue_by_period(df, revenue_column, date_column, category_column),
+            "revenue_trend":            self._revenue_trend(df, revenue_column, date_column),
+            "category_distribution":    self._category_distribution(df, revenue_column, category_column),
+            "order_value_distribution": self._order_value_distribution(df, revenue_column),
+        }
+
+    @staticmethod
+    def _detect_column(df, keywords):
+        for col in df.columns:
+            if any(kw in str(col).lower().strip() for kw in keywords):
+                return col
+        return None
+
+    def _revenue_by_period(self, df, revenue_column, date_column, category_column):
+        """Quarterly revenue if date col, by category otherwise, equal splits as fallback."""
+        import pandas as pd
+
+        if revenue_column is None:
+            return {}
+
+        rev = pd.to_numeric(df[revenue_column], errors="coerce").fillna(0)
+
+        if date_column:
+            try:
+                dates = pd.to_datetime(df[date_column], errors="coerce")
+                work  = pd.DataFrame({"rev": rev, "date": dates}).dropna(subset=["date"])
+                if not work.empty:
+                    work["quarter"] = work["date"].dt.to_period("Q").astype(str)
+                    grouped = work.groupby("quarter")["rev"].sum().sort_index()
+                    if not grouped.empty:
+                        logger.info(f"Revenue by quarter: {grouped.to_dict()}")
+                        return {
+                            "labels": list(grouped.index),
+                            "values": [round(float(v), 2) for v in grouped.values],
+                            "type":   "quarterly",
+                        }
+            except Exception as exc:
+                logger.warning(f"Quarterly grouping failed: {exc}")
+
+        if category_column:
+            try:
+                work    = pd.DataFrame({"rev": rev, "cat": df[category_column].astype(str)})
+                grouped = work.groupby("cat")["rev"].sum().sort_values(ascending=False).head(6)
+                if not grouped.empty:
+                    logger.info(f"Revenue by category: {grouped.to_dict()}")
+                    return {
+                        "labels": list(grouped.index),
+                        "values": [round(float(v), 2) for v in grouped.values],
+                        "type":   "category",
+                    }
+            except Exception as exc:
+                logger.warning(f"Category grouping failed: {exc}")
+
+        n  = len(rev)
+        qs = [float(rev.iloc[i * n // 4:(i + 1) * n // 4].sum()) for i in range(4)]
+        return {
+            "labels": ["Period 1", "Period 2", "Period 3", "Period 4"],
+            "values": [round(v, 2) for v in qs],
+            "type":   "period",
+        }
+
+    def _revenue_trend(self, df, revenue_column, date_column):
+        """Real monthly revenue if date col exists, else 12 equal row-index slices."""
+        import pandas as pd
+
+        if revenue_column is None:
+            return {}
+
+        rev = pd.to_numeric(df[revenue_column], errors="coerce").fillna(0)
+
+        if date_column:
+            try:
+                dates = pd.to_datetime(df[date_column], errors="coerce")
+                work  = pd.DataFrame({"rev": rev, "date": dates}).dropna(subset=["date"])
+                if not work.empty:
+                    work["month"] = work["date"].dt.to_period("M")
+                    grouped = work.groupby("month")["rev"].sum().sort_index()
+                    if not grouped.empty:
+                        logger.info(f"Monthly revenue: {len(grouped)} periods")
+                        return {
+                            "labels": [str(p) for p in grouped.index],
+                            "values": [round(float(v), 2) for v in grouped.values],
+                            "type":   "monthly",
+                        }
+            except Exception as exc:
+                logger.warning(f"Monthly grouping failed: {exc}")
+
+        n      = len(rev)
+        slices = [float(rev.iloc[i * n // 12:(i + 1) * n // 12].sum()) for i in range(12)]
+        return {
+            "labels": [f"Period {i + 1}" for i in range(12)],
+            "values": [round(v, 2) for v in slices],
+            "type":   "period",
+        }
+
+    def _category_distribution(self, df, revenue_column, category_column):
+        """Real category share as % of total revenue. Returns top-5 + Other."""
+        import pandas as pd
+
+        if category_column is None:
+            return {}
+
+        try:
+            if revenue_column:
+                rev    = pd.to_numeric(df[revenue_column], errors="coerce").fillna(0)
+                totals = (
+                    pd.DataFrame({"rev": rev, "cat": df[category_column].astype(str)})
+                    .groupby("cat")["rev"]
+                    .sum()
+                    .sort_values(ascending=False)
+                )
+            else:
+                totals = df[category_column].astype(str).value_counts().astype(float)
+
+            grand = float(totals.sum())
+            if grand == 0:
+                return {}
+
+            top5   = totals.head(5)
+            other  = grand - float(top5.sum())
+            labels = list(top5.index)
+            values = [round(float(v) / grand * 100, 1) for v in top5.values]
+
+            if other > 0:
+                labels.append("Other")
+                values.append(round(other / grand * 100, 1))
+
+            logger.info(f"Category distribution: {dict(zip(labels, values))}")
+            return {"labels": labels, "values": values}
+
+        except Exception as exc:
+            logger.warning(f"Category distribution failed: {exc}")
+            return {}
+
+    def _order_value_distribution(self, df, revenue_column):
+        """Real histogram of per-row order values using fixed $100-wide bins."""
+        import pandas as pd
+
+        if revenue_column is None:
+            return {}
+
+        try:
+            series = pd.to_numeric(df[revenue_column], errors="coerce").dropna()
+            series = series[series > 0]
+            if series.empty:
+                return {}
+
+            edges      = [0, 100, 200, 300, 400, 500, 600, 700, float("inf")]
+            bin_labels = ["0-100", "100-200", "200-300", "300-400",
+                          "400-500", "500-600", "600-700", "700+"]
+
+            counts = (
+                pd.cut(series, bins=edges, labels=bin_labels, right=False)
+                .value_counts()
+                .reindex(bin_labels, fill_value=0)
+            )
+
+            logger.info(f"Order value histogram: {counts.to_dict()}")
+            return {
+                "labels": bin_labels,
+                "values": [int(v) for v in counts.values],
+            }
+
+        except Exception as exc:
+            logger.warning(f"Order value distribution failed: {exc}")
+            return {}
+
