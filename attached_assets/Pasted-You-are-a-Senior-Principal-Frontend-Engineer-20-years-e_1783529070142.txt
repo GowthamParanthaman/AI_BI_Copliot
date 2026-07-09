@@ -1,0 +1,350 @@
+You are a Senior Principal Frontend Engineer (20+ years experience) specializing in enterprise Business Intelligence platforms.
+
+Project:
+AI BI Copilot
+
+Backend:
+- FastAPI
+- LangGraph
+- OpenAI
+- SQLAlchemy
+
+Frontend:
+- HTML
+- CSS
+- JavaScript
+(or the existing frontend framework already used by the project)
+
+IMPORTANT
+
+Do NOT modify:
+
+• Backend architecture
+• APIs
+• Database schema
+• LangGraph workflow
+• Business logic
+• KPI calculations
+
+Improve ONLY the frontend UI/UX.
+
+==================================================
+OBJECTIVE
+==================================================
+
+Transform the current dashboard into a modern enterprise Business Intelligence platform comparable to:
+
+• Microsoft Power BI
+• Tableau
+• Google Looker Studio
+• Databricks SQL Dashboard
+
+The dashboard should look like a commercial SaaS product instead of a student project.
+
+==================================================
+1. Dashboard Layout
+==================================================
+
+Create a responsive dashboard.
+
+Layout:
+
+--------------------------------------------------
+
+Top Navigation
+
+AI BI Copilot Logo
+
+Search Bar
+
+Dark/Light Toggle
+
+Notifications
+
+User Profile
+
+--------------------------------------------------
+
+Left Sidebar
+
+Dashboard
+
+Upload Dataset
+
+Analytics
+
+Forecast
+
+Visualizations
+
+Reports
+
+Settings
+
+--------------------------------------------------
+
+Main Content
+
+KPI Cards
+
+Charts
+
+Tables
+
+Insights
+
+Recommendations
+
+--------------------------------------------------
+
+==================================================
+2. KPI Cards
+==================================================
+
+Create beautiful animated KPI cards.
+
+Each card should have:
+
+Icon
+
+Title
+
+Current Value
+
+Percentage Change
+
+Mini Trend
+
+Hover Animation
+
+Examples:
+
+Total Revenue
+
+Total Orders
+
+Average Order Value
+
+Profit Margin
+
+Business Health
+
+Forecast
+
+Customer Satisfaction
+
+==================================================
+3. Modern Color Palette
+==================================================
+
+Professional colors.
+
+Rounded cards.
+
+Soft shadows.
+
+Modern spacing.
+
+Consistent typography.
+
+No Bootstrap default appearance.
+
+==================================================
+4. Dark Mode
+==================================================
+
+Implement
+
+Light Mode
+
+Dark Mode
+
+Remember user preference.
+
+==================================================
+5. Charts
+==================================================
+
+Replace static charts with interactive charts.
+
+Features:
+
+Zoom
+
+Tooltip
+
+Legend
+
+Responsive
+
+Export PNG
+
+Fullscreen
+
+Download
+
+==================================================
+6. Filters
+==================================================
+
+Create a filter panel.
+
+Date Range
+
+Category
+
+Region
+
+Product
+
+Customer
+
+Dynamic filtering.
+
+==================================================
+7. Data Table
+==================================================
+
+Interactive table.
+
+Sorting
+
+Searching
+
+Pagination
+
+Column Selection
+
+CSV Export
+
+==================================================
+8. Dashboard Animations
+==================================================
+
+Smooth animations.
+
+Cards
+
+Charts
+
+Sidebar
+
+Page transitions
+
+Hover effects
+
+Loading skeletons
+
+==================================================
+9. Map Analytics
+==================================================
+
+If latitude and longitude exist:
+
+Interactive map.
+
+Markers
+
+Heatmap
+
+Cluster
+
+Region summary
+
+If no coordinates exist:
+
+Automatically disable map gracefully.
+
+==================================================
+10. Responsive Design
+==================================================
+
+Desktop
+
+Laptop
+
+Tablet
+
+Mobile
+
+==================================================
+11. Accessibility
+==================================================
+
+Keyboard navigation
+
+ARIA labels
+
+Color contrast
+
+Screen reader support
+
+==================================================
+12. Performance
+==================================================
+
+Lazy loading
+
+Minimize re-rendering
+
+Optimize charts
+
+==================================================
+13. Code Quality
+==================================================
+
+Reusable components.
+
+Clean CSS.
+
+Remove duplicated styles.
+
+Follow SOLID principles.
+
+==================================================
+14. Verification
+==================================================
+
+Verify:
+
+✓ Dashboard loads
+
+✓ Responsive layout
+
+✓ KPI cards animated
+
+✓ Sidebar works
+
+✓ Dark mode works
+
+✓ Charts interactive
+
+✓ Filters work
+
+✓ Table sorting
+
+✓ Mobile responsive
+
+✓ No console errors
+
+==================================================
+15. Git
+==================================================
+
+After verification:
+
+Commit
+
+Push to GitHub
+
+Return ONLY:
+
+1. Modified files
+
+2. UI improvements
+
+3. Verification checklist
+
+4. Commit hash
+
+5. GitHub push confirmation

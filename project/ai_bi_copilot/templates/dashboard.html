@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI BI Copilot — Enterprise Business Intelligence Platform">
+  <title>AI BI Copilot</title>
+
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Dashboard styles -->
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+
+  <!-- Leaflet (map — loaded on demand) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+
+  <!-- Our app -->
+  <script src="/static/js/app.js" defer></script>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ══ Mobile Overlay ═════════════════════════════════════════ -->
+  <div id="mobile-overlay" class="mobile-overlay" role="presentation"></div>
+
+  <!-- ══ Sidebar ════════════════════════════════════════════════ -->
+  <nav id="sidebar" class="sidebar" aria-label="Main navigation">
+
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <div class="sidebar-logo" aria-hidden="true">📊</div>
+      <span class="sidebar-brand-text">AI BI Copilot</span>
+    </div>
+
+    <!-- Navigation -->
+    <div class="sidebar-nav" role="list">
+
+      <div class="nav-section-label">Main</div>
+
+      <div class="nav-item active" role="listitem" tabindex="0"
+           data-view="dashboard" data-label="Dashboard"
+           aria-label="Dashboard" aria-current="page">
+        <span class="nav-item-icon" aria-hidden="true">🏠</span>
+        <span class="nav-item-label">Dashboard</span>
+      </div>
+
+      <div class="nav-item" role="listitem" tabindex="0"
+           data-view="upload" data-label="Upload Dataset"
+           aria-label="Upload Dataset">
+        <span class="nav-item-icon" aria-hidden="true">📤</span>
+        <span class="nav-item-label">Upload Dataset</span>
+      </div>
+
+      <div class="nav-section-label">Analytics</div>
+
+      <div class="nav-item" role="listitem" tabindex="0"
+           data-view="analytics" data-label="Analytics"
+           aria-label="Analytics">
+        <span class="nav-item-icon" aria-hidden="true">📈</span>
+        <span class="nav-item-label">Analytics</span>
+      </div>
+
+      <div class="nav-item" role="listitem" tabindex="0"
+           data-view="forecast" data-label="Forecast"
+           aria-label="Forecast">
+        <span class="nav-item-icon" aria-hidden="true">🔮</span>
+        <span class="nav-item-label">Forecast</span>
+      </div>
+
+      <div class="nav-item" role="listitem" tabindex="0"
+           data-view="visualizations" data-label="Visualizations"
+           aria-label="Visualizations">
+        <span class="nav-item-icon" aria-hidden="true">📉</span>
+        <span class="nav-item-label">Visualizations</span>
+      </div>
+
+      <div class="nav-section-label">Output</div>
+
+      <div class="nav-item" role="listitem" tabindex="0"
+           data-view="reports" data-label="Reports"
+           aria-label="Reports">
+        <span class="nav-item-icon" aria-hidden="true">📄</span>
+        <span class="nav-item-label">Reports</span>
+      </div>
+
+      <div class="nav-item" role="listitem" tabindex="0"
+           data-view="settings" data-label="Settings"
+           aria-label="Settings">
+        <span class="nav-item-icon" aria-hidden="true">⚙️</span>
+        <span class="nav-item-label">Settings</span>
+      </div>
+
+    </div>
+
+    <!-- Sidebar footer -->
+    <div class="sidebar-footer">
+      <div class="nav-item" role="button" tabindex="0"
+           data-label="Documentation"
+           aria-label="API Documentation"
+           onclick="window.open('/docs','_blank')">
+        <span class="nav-item-icon" aria-hidden="true">📚</span>
+        <span class="nav-item-label">API Docs</span>
+      </div>
+    </div>
+
+  </nav>
+
+  <!-- ══ Main Wrapper ═══════════════════════════════════════════ -->
+  <div class="main-wrapper">
+
+    <!-- ── Top Navigation ────────────────────────────────────── -->
+    <header class="topnav" role="banner">
+
+      <button class="topnav-toggle" id="sidebar-toggle"
+              onclick="toggleSidebar()" aria-label="Toggle sidebar"
+              aria-controls="sidebar" aria-expanded="true">
+        ☰
+      </button>
+
+      <button class="topnav-toggle" id="mobile-menu-btn"
+              onclick="toggleMobileSidebar()" aria-label="Open navigation menu"
+              style="display:none">
+        ☰
+      </button>
+
+      <!-- Search -->
+      <div class="topnav-search" role="search">
+        <span class="topnav-search-icon" aria-hidden="true">🔍</span>
+        <input type="search" placeholder="Search datasets, metrics…"
+               aria-label="Search"
+               onkeydown="if(event.key==='Enter')handleSearch(this.value)">
+      </div>
+
+      <!-- Actions -->
+      <div class="topnav-actions">
+
+        <!-- Theme toggle -->
+        <div style="display:flex;align-items:center;gap:8px" aria-label="Theme toggle">
+          <span style="font-size:12px;color:var(--text-muted)" aria-hidden="true">☀</span>
+          <button class="theme-toggle" id="theme-toggle"
+                  role="switch" aria-checked="false"
+                  aria-label="Toggle dark mode"
+                  onclick="applyTheme(State.theme==='light'?'dark':'light'); this.setAttribute('aria-checked',State.theme==='dark')">
+          </button>
+          <span style="font-size:12px;color:var(--text-muted)" aria-hidden="true">🌙</span>
+        </div>
+
+        <!-- Notifications -->
+        <button class="icon-btn" aria-label="Notifications" onclick="toggleNotifications()">
+          🔔
+          <span class="badge" aria-label="New notifications"></span>
+        </button>
+
+        <!-- User avatar -->
+        <div class="user-avatar" role="button" tabindex="0"
+             aria-label="User profile" title="User profile">
+          BI
+        </div>
+
+      </div>
+
+    </header>
+
+    <!-- ── Main Content ───────────────────────────────────────── -->
+    <main class="main-content" id="main-content" role="main">
+
+      <!-- ════ View: Dashboard ══════════════════════════════════ -->
+      <div id="view-dashboard" class="view-section">
+
+        <!-- Page header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Business Intelligence Dashboard</h1>
+            <p class="page-subtitle">AI-powered analytics · Real-time insights · Executive reporting</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <!-- Dataset selector inline -->
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:13px;color:var(--text-muted)">Dataset:</span>
+              <span id="selected-dataset-name" style="font-weight:600;font-size:13px;color:var(--accent)">None selected</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="activateView('upload');renderUploadView()"
+                    aria-label="Browse datasets">
+              📂 Browse
+            </button>
+            <button class="btn btn-primary" id="run-analysis-btn"
+                    onclick="runAnalysis()" disabled
+                    aria-label="Run AI analysis on selected dataset">
+              ▶ Run Analysis
+            </button>
+          </div>
+        </div>
+
+        <!-- Analysis question -->
+        <div style="margin-bottom:18px">
+          <input type="text" id="analysis-question"
+                 class="field-input"
+                 placeholder="Optional: ask a business question (e.g. 'What is driving revenue decline?')"
+                 aria-label="Business question for analysis"
+                 style="max-width:600px">
+        </div>
+
+        <!-- Analysis info bar (shown after run) -->
+        <div id="analysis-info-bar" style="display:none;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap">
+          <span class="chip">⏱ Runtime: <strong id="analysis-exec-time">—</strong></span>
+          <span class="chip">✅ Status: <strong id="analysis-status">—</strong></span>
+          <span class="chip">📊 Dataset: <strong id="analysis-dataset-chip">—</strong></span>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar" id="filter-bar" aria-label="Data filters">
+          <span class="filter-label">🔽 Filters</span>
+          <select class="filter-select" id="filter-category" aria-label="Filter by category">
+            <option value="">All Categories</option>
+            <option>Electronics</option>
+            <option>Clothing</option>
+            <option>Beauty</option>
+            <option>Sports</option>
+            <option>Books</option>
+          </select>
+          <select class="filter-select" id="filter-region" aria-label="Filter by region">
+            <option value="">All Regions</option>
+            <option>North America</option>
+            <option>Europe</option>
+            <option>Asia Pacific</option>
+            <option>Latin America</option>
+            <option>Middle East</option>
+          </select>
+          <input type="text" class="filter-input" id="filter-product"
+                 placeholder="Product…" aria-label="Filter by product"
+                 style="max-width:140px">
+          <button class="btn btn-primary btn-sm" onclick="applyFilters()" aria-label="Apply filters">Apply</button>
+          <button class="btn btn-ghost btn-sm" onclick="resetFilters()" aria-label="Reset filters">Reset</button>
+        </div>
+
+        <!-- Welcome / Landing -->
+        <div id="dashboard-welcome">
+          <div class="empty-state">
+            <div class="empty-state-icon">🚀</div>
+            <div class="empty-state-title">Welcome to AI BI Copilot</div>
+            <div class="empty-state-text">
+              Upload a dataset and run analysis to unlock AI-powered KPIs,
+              interactive charts, insights, and executive reports.
+            </div>
+            <button class="btn btn-primary" onclick="activateView('upload');renderUploadView()">
+              📤 Upload Dataset
+            </button>
+          </div>
+        </div>
+
+        <!-- Dashboard content (shown after analysis) -->
+        <div id="dashboard-content" style="display:none">
+
+          <!-- Health + KPI summary row -->
+          <div style="display:grid;grid-template-columns:160px 1fr;gap:18px;margin-bottom:24px;align-items:start">
+
+            <!-- Health ring widget -->
+            <div class="health-widget" aria-label="Business health score">
+              <div class="health-ring">
+                <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
+                  <circle class="health-ring-track" cx="60" cy="60" r="54"/>
+                  <circle class="health-ring-fill" id="health-ring-fill" cx="60" cy="60" r="54"/>
+                </svg>
+                <div class="health-ring-label">
+                  <span class="health-ring-score" id="health-score-text">—</span>
+                  <span class="health-ring-sub">HEALTH</span>
+                </div>
+              </div>
+              <div style="font-size:13px;font-weight:700;color:var(--text)" id="health-label-text">—</div>
+              <div style="font-size:11px;color:var(--text-muted)">Business Health Score</div>
+            </div>
+
+            <!-- KPI cards -->
+            <div id="kpi-grid" class="kpi-grid" role="region" aria-label="KPI cards">
+              <!-- populated by JS -->
+            </div>
+
+          </div>
+
+          <!-- Charts -->
+          <div id="charts-section" role="region" aria-label="Analytics charts">
+            <!-- populated by JS -->
+          </div>
+
+          <!-- Insights & Recommendations -->
+          <div class="section-title">💡 Insights &amp; Recommendations</div>
+          <div class="insights-grid" role="region" aria-label="Business insights and recommendations">
+
+            <div class="insight-card">
+              <div class="insight-card-title">📌 Business Insights</div>
+              <div id="insights-list">
+                <!-- populated by JS -->
+              </div>
+            </div>
+
+            <div class="insight-card">
+              <div class="insight-card-title">🎯 Strategic Recommendations</div>
+              <div id="recommendations-list">
+                <!-- populated by JS -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Map section -->
+          <div id="map-section">
+            <!-- populated by JS based on coordinates -->
+          </div>
+
+          <!-- Data table section -->
+          <div id="table-section">
+            <!-- populated by JS -->
+          </div>
+
+        </div><!-- /dashboard-content -->
+
+      </div><!-- /view-dashboard -->
+
+      <!-- ════ View: Upload ══════════════════════════════════════ -->
+      <div id="view-upload" class="view-section" style="display:none">
+        <!-- populated by renderUploadView() -->
+      </div>
+
+      <!-- ════ View: Analytics ══════════════════════════════════ -->
+      <div id="view-analytics" class="view-section" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Analytics</h1>
+            <p class="page-subtitle">Deep-dive data analysis</p>
+          </div>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state-icon">📈</div>
+          <div class="empty-state-title">Run analysis first</div>
+          <div class="empty-state-text">Go to the Dashboard, select a dataset and run the AI analysis to see analytics.</div>
+          <button class="btn btn-primary" onclick="activateView('dashboard')">Go to Dashboard</button>
+        </div>
+      </div>
+
+      <!-- ════ View: Forecast ════════════════════════════════════ -->
+      <div id="view-forecast" class="view-section" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Forecast</h1>
+            <p class="page-subtitle">Predictive business analytics</p>
+          </div>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state-icon">🔮</div>
+          <div class="empty-state-title">Forecast coming soon</div>
+          <div class="empty-state-text">Time-series forecasting will appear here after running a full pipeline analysis.</div>
+          <button class="btn btn-primary" onclick="activateView('dashboard')">Run Analysis</button>
+        </div>
+      </div>
+
+      <!-- ════ View: Visualizations ═════════════════════════════ -->
+      <div id="view-visualizations" class="view-section" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Visualizations</h1>
+            <p class="page-subtitle">Interactive chart gallery</p>
+          </div>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state-icon">📉</div>
+          <div class="empty-state-title">No visualizations yet</div>
+          <div class="empty-state-text">Run the analysis pipeline to generate interactive charts and visualizations.</div>
+          <button class="btn btn-primary" onclick="activateView('dashboard')">Run Analysis</button>
+        </div>
+      </div>
+
+      <!-- ════ View: Reports ════════════════════════════════════ -->
+      <div id="view-reports" class="view-section" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Reports</h1>
+            <p class="page-subtitle">Executive PDF reports</p>
+          </div>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state-icon">📄</div>
+          <div class="empty-state-title">No reports generated</div>
+          <div class="empty-state-text">Run the full analysis pipeline to auto-generate an executive PDF report.</div>
+          <button class="btn btn-primary" onclick="activateView('dashboard')">Generate Report</button>
+        </div>
+      </div>
+
+      <!-- ════ View: Settings ═══════════════════════════════════ -->
+      <div id="view-settings" class="view-section" style="display:none">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Settings</h1>
+            <p class="page-subtitle">Preferences and configuration</p>
+          </div>
+        </div>
+
+        <div class="chart-card" style="max-width:600px">
+          <div class="chart-card-title" style="margin-bottom:20px">🎨 Appearance</div>
+
+          <div class="field-group">
+            <label class="field-label">Theme</label>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-secondary" onclick="applyTheme('light')" aria-label="Light theme">☀️ Light</button>
+              <button class="btn btn-secondary" onclick="applyTheme('dark')"  aria-label="Dark theme">🌙 Dark</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="chart-card-title" style="margin-bottom:16px">ℹ️ About</div>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7">
+            <strong>AI BI Copilot</strong> v1.0.0<br>
+            Enterprise Business Intelligence platform powered by FastAPI, LangGraph, and OpenAI.<br><br>
+            <a href="/docs" target="_blank" style="color:var(--accent)">API Documentation →</a>
+          </p>
+        </div>
+      </div>
+
+    </main><!-- /main-content -->
+
+  </div><!-- /main-wrapper -->
+
+</div><!-- /app -->
+
+<!-- ══ Upload Modal ════════════════════════════════════════════ -->
+<div id="upload-modal" class="modal-overlay" role="dialog"
+     aria-modal="true" aria-labelledby="upload-modal-title">
+  <div class="modal-box">
+    <h2 class="modal-title" id="upload-modal-title">📤 Upload Dataset</h2>
+
+    <form id="upload-form" onsubmit="submitUpload(event)" novalidate>
+
+      <div class="field-group">
+        <label class="field-label" for="upload-dataset-name">Dataset Name *</label>
+        <input type="text" class="field-input" id="upload-dataset-name"
+               placeholder="e.g. retail_sales_2025" required
+               autocomplete="off" aria-required="true">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="upload-file">CSV File *</label>
+        <input type="file" class="field-input" id="upload-file"
+               accept=".csv" required aria-required="true">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field-group">
+          <label class="field-label" for="upload-department">Department</label>
+          <input type="text" class="field-input" id="upload-department"
+                 placeholder="e.g. Sales" autocomplete="off">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="upload-domain">Business Domain</label>
+          <input type="text" class="field-input" id="upload-domain"
+                 placeholder="e.g. Retail" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="upload-submit-btn">Upload Dataset</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ══ Fullscreen Chart Overlay ═══════════════════════════════ -->
+<div id="fullscreen-overlay" class="fullscreen-overlay" role="dialog"
+     aria-modal="true" aria-label="Fullscreen chart"
+     onclick="if(event.target===this)closeFullscreen()">
+  <div id="fullscreen-chart-box" class="fullscreen-chart-box"></div>
+</div>
+
+<!-- ══ Toast Container ════════════════════════════════════════ -->
+<div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<!-- ══ Mobile menu button (injected via CSS media query) ══════ -->
+<script>
+  // Show mobile menu button on small screens
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar-toggle').style.display = 'none';
+    document.getElementById('mobile-menu-btn').style.display = '';
+  }
+</script>
+
+</body>
+</html>

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi import Request
 from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from loguru import logger
 
@@ -26,6 +28,12 @@ from api.routes.upload import (
     router as upload_router,
 )
 
+# -- Paths --
+_BASE = Path(__file__).resolve().parent
+# dashboard.html has no template variables — serve as plain HTML to avoid
+# Jinja2 3.1.6 LRU cache-key bug with dict globals in Starlette < 0.46
+_DASHBOARD_HTML = (_BASE / "templates" / "dashboard.html").read_text(encoding="utf-8")
+
 # =====================================================
 # APPLICATION LIFECYCLE
 # =====================================================
@@ -34,47 +42,27 @@ from api.routes.upload import (
 async def lifespan(app: FastAPI):
 
     logger.info("=" * 80)
-    logger.info(
-        f"Starting {settings.APP_NAME}"
-    )
+    logger.info(f"Starting {settings.APP_NAME}")
     logger.info("=" * 80)
 
     try:
-
         init_db()
+        logger.success("Database initialized successfully")
 
-        logger.success(
-            "Database initialized successfully"
-        )
-
-        logger.info(
-            "Registered API Routes"
-        )
-
+        logger.info("Registered API Routes")
         for route in app.routes:
+            logger.info(f"{getattr(route, 'path', '')}")
 
-            logger.info(
-                f"{getattr(route, 'path', '')}"
-            )
-
-        logger.success(
-            "Application initialized successfully"
-        )
+        logger.success("Application initialized successfully")
 
     except Exception as exc:
-
-        logger.exception(
-            f"Application startup failed: {exc}"
-        )
-
+        logger.exception(f"Application startup failed: {exc}")
         raise
 
     yield
 
     logger.info("=" * 80)
-    logger.info(
-        f"Stopping {settings.APP_NAME}"
-    )
+    logger.info(f"Stopping {settings.APP_NAME}")
     logger.info("=" * 80)
 
 
@@ -113,17 +101,25 @@ Enterprise AI-powered analytics platform.
 )
 
 # =====================================================
+# STATIC FILES
+# =====================================================
+
+_STATIC = _BASE / "static"
+_STATIC.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
+
+_CHARTS = _BASE / "reports" / "charts"
+_CHARTS.mkdir(parents=True, exist_ok=True)
+app.mount("/charts", StaticFiles(directory=str(_CHARTS)), name="charts")
+
+# =====================================================
 # CORS
 # =====================================================
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:8501",
-        "http://127.0.0.1:8501",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,  # Must be False when allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -133,15 +129,8 @@ app.add_middleware(
 # =====================================================
 
 @app.exception_handler(Exception)
-async def global_exception_handler(
-    request: Request,
-    exc: Exception,
-):
-
-    logger.exception(
-        f"Unhandled exception: {exc}"
-    )
-
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled exception: {exc}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -155,87 +144,31 @@ async def global_exception_handler(
 # ROUTE REGISTRATION
 # =====================================================
 
-app.include_router(
-    health_router
-)
-
-app.include_router(
-    dataset_router
-)
-
-app.include_router(
-    upload_router
-)
-
-app.include_router(
-    analysis_router
-)
+app.include_router(health_router)
+app.include_router(dataset_router)
+app.include_router(upload_router)
+app.include_router(analysis_router)
 
 # =====================================================
-# ROOT
+# DASHBOARD (root)
 # =====================================================
 
-@app.get(
-    "/",
-    tags=["System"],
-    summary="Application Status",
-)
-async def root():
-
-    return {
-        "application": settings.APP_NAME,
-        "version": "1.0.0",
-        "status": "running",
-        "environment": (
-            "development"
-            if settings.DEBUG
-            else "production"
-        ),
-        "documentation": "/docs",
-        "openapi": "/openapi.json",
-    }
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def dashboard(request: Request):
+    return HTMLResponse(content=_DASHBOARD_HTML)
 
 # =====================================================
-# READINESS
+# SYSTEM PROBES
 # =====================================================
 
-@app.get(
-    "/ready",
-    tags=["System"],
-    summary="Readiness Probe",
-)
+@app.get("/ready", tags=["System"], summary="Readiness Probe")
 async def readiness():
+    return {"status": "ready"}
 
-    return {
-        "status": "ready",
-    }
-
-# =====================================================
-# LIVENESS
-# =====================================================
-
-@app.get(
-    "/live",
-    tags=["System"],
-    summary="Liveness Probe",
-)
+@app.get("/live", tags=["System"], summary="Liveness Probe")
 async def liveness():
+    return {"status": "alive"}
 
-    return {
-        "status": "alive",
-    }
-
-# =====================================================
-# VERSION
-# =====================================================
-
-@app.get(
-    "/version",
-    tags=["System"],
-)
+@app.get("/version", tags=["System"])
 async def version():
-
-    return {
-        "application": settings.APP_NAME,
-        "version": "1.0.0",
-    }
+    return {"application": settings.APP_NAME, "version": "1.0.0"}
