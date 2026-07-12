@@ -27,6 +27,9 @@ from api.routes.health import (
 from api.routes.upload import (
     router as upload_router,
 )
+from api.routes.chat import (
+    router as chat_router,
+)
 
 # -- Paths --
 _BASE = Path(__file__).resolve().parent
@@ -148,6 +151,7 @@ app.include_router(health_router)
 app.include_router(dataset_router)
 app.include_router(upload_router)
 app.include_router(analysis_router)
+app.include_router(chat_router)
 
 # =====================================================
 # DASHBOARD (root)

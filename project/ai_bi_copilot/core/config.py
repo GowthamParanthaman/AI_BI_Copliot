@@ -54,6 +54,16 @@ class Settings(BaseSettings):
 
     OPENAI_MAX_TOKENS: int = 4000
 
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+
+    # ==========================================
+    # RAG / Vector Store
+    # ==========================================
+
+    CHAT_VECTOR_STORE_DIR: str = "storage/chroma_db"
+
+    CHAT_RETRIEVAL_TOP_K: int = 6
+
     # ==========================================
     # Email Configuration
     # ==========================================

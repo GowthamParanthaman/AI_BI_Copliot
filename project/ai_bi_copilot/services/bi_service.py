@@ -12,6 +12,8 @@ from workflows.bi_workflow import BIWorkflow
 from workflows.state import BIWorkflowState
 from typing import cast
 
+from services.chat_indexing_service import ChatIndexingService
+
 
 class BIService:
     """
@@ -58,6 +60,8 @@ class BIService:
             )
 
         self.workflow = BIService._workflow
+
+        self.chat_indexing_service = ChatIndexingService()
 
     # =====================================================
     # PUBLIC API
@@ -170,6 +174,15 @@ class BIService:
                 f"{execution_time}s"
             )
 
+            # =====================================
+            # BUILD AI CHAT RAG INDEX (best-effort)
+            # =====================================
+
+            self._index_chat_context(
+                dataset_name=dataset_name,
+                result=result,
+            )
+
             return result
 
         except Exception as exc:
@@ -199,6 +212,54 @@ class BIService:
             raise RuntimeError(
                 f"Pipeline execution failed: {exc}"
             ) from exc
+
+    # =====================================================
+    # AI CHAT RAG INDEXING
+    # =====================================================
+
+    def _index_chat_context(
+        self,
+        dataset_name: str,
+        result: BIWorkflowState,
+    ) -> None:
+        """
+        Build/refresh the AI Chat RAG index using the
+        full pipeline output (schema, columns, dataset
+        summary, KPI summary, Business Health summary,
+        forecast summary). Best-effort: indexing
+        failures must never fail the analysis run.
+        """
+
+        try:
+
+            schema_info = result.get("schema_info")
+
+            self.chat_indexing_service.index_dataset(
+                dataset_name=dataset_name,
+                schema=schema_info,
+                business_entities=result.get("business_entities"),
+                fact_columns=result.get("fact_columns"),
+                dimension_columns=result.get("dimension_columns"),
+                kpi_candidates=result.get("kpi_candidates"),
+                row_count=result.get("row_count"),
+                column_count=result.get("column_count"),
+                quality_score=result.get("quality_score"),
+                business_domain=result.get("business_domain"),
+                semantic_description=result.get("semantic_description"),
+                kpi_summary=(
+                    result.get("kpi_summary")
+                    or result.get("kpis")
+                ),
+                health_score=result.get("health_score"),
+                forecast_results=result.get("forecast_results"),
+            )
+
+        except Exception:
+
+            logger.exception(
+                f"AI Chat indexing failed for dataset="
+                f"{dataset_name} (non-blocking)"
+            )
 
     # =====================================================
     # HEALTH CHECK

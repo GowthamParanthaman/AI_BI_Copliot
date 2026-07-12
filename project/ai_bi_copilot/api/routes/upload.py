@@ -42,6 +42,10 @@ from services.dataframe_service import (
     DataFrameService
 )
 
+from services.chat_indexing_service import (
+    ChatIndexingService
+)
+
 router = APIRouter(
     prefix="/upload",
     tags=["Dataset Upload"]
@@ -52,6 +56,8 @@ router = APIRouter(
 file_storage_service = FileStorageService()
 
 dataframe_service = DataFrameService()
+
+chat_indexing_service = ChatIndexingService()
 
 def json_serializer(obj):
 
@@ -269,6 +275,28 @@ async def upload_dataset(
             f"successfully "
             f"ID={dataset.id}"
         )
+        # =====================================
+        # BUILD AI CHAT RAG INDEX (best-effort)
+        # =====================================
+
+        try:
+
+            chat_indexing_service.index_dataset(
+                dataset_name=dataset.dataset_name,
+                schema=schema,
+                row_count=dataset.row_count,
+                column_count=dataset.column_count,
+                quality_score=dataset.quality_score,
+                business_domain=dataset.business_domain,
+            )
+
+        except Exception:
+
+            logger.exception(
+                "AI Chat indexing failed after upload "
+                "(non-blocking)"
+            )
+
 
         return DatasetUploadResponse(
 

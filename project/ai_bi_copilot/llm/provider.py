@@ -4,6 +4,7 @@ from functools import lru_cache
 from typing import Final
 
 from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
 from loguru import logger
 
 from core.config import settings
@@ -140,3 +141,39 @@ class LLMProvider:
         """
 
         cls.get_model.cache_clear()
+
+    # ==================================================
+    # EMBEDDINGS (RAG)
+    # ==================================================
+
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def get_embeddings() -> OpenAIEmbeddings:
+        """
+        Returns cached OpenAIEmbeddings instance used
+        for building the AI Chat retrieval index.
+        """
+
+        LLMProvider._validate_configuration()
+
+        logger.info(
+            "Initializing embeddings model | Model={}",
+            settings.OPENAI_EMBEDDING_MODEL
+        )
+
+        try:
+
+            return OpenAIEmbeddings(
+                model=settings.OPENAI_EMBEDDING_MODEL,
+                api_key=settings.OPENAI_API_KEY,
+            )
+
+        except Exception as exc:
+
+            logger.exception(
+                "Failed to initialize embeddings model"
+            )
+
+            raise RuntimeError(
+                f"Embeddings initialization failed: {exc}"
+            ) from exc

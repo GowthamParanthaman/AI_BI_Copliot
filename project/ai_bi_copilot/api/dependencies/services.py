@@ -33,6 +33,7 @@ from services.dataset_service import (
 from functools import lru_cache
 
 from services.bi_service import BIService
+from services.chat_service import ChatService
 
 # =====================================================
 # DATABASE DEPENDENCY TYPE
@@ -79,8 +80,18 @@ def get_bi_service() -> BIService:
     """
 
     return BIService()
+@lru_cache(maxsize=1)
+def get_chat_service() -> ChatService:
+    """
+    Chat Service Dependency (RAG-backed AI Chat)
+    """
+
+    return ChatService()
+
+
 __all__ = [
     "DatabaseSession",
     "get_dataset_service",
-    "get_bi_service"
+    "get_bi_service",
+    "get_chat_service"
 ]
